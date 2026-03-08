@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@theme {
+    /* Brand Colors */
+    --color-primary: #2d6a4f;
+    --color-secondary: #40916c;
+    --color-accent: #95d5b2;
+    --color-accent-hover: #74c69d;
+
+    /* Status */
+    --color-success: #52b788;
+    --color-danger: #d62828;
+
+    /* Fonts */
+    --font-sans: "Nunito", sans-serif;
+    --font-display: "Syne", sans-serif;
+}
+
+/* ── Light Mode (Default Variables) ── */
+:root {
+    --bg: #f8f3e6;
+    --card-bg: #fffdf7;
+    --text-main: #1b4332;
+    --text-muted: #6b705c;
+    --accent-opacity: rgba(149, 213, 178, 0.2);
+}
+
+/* ── Dark Mode Variables ── */
+.dark {
+    --bg: #0f0f1a;
+    --card-bg: #1e1e35;
+    --text-main: #f5f5f5;
+    --text-muted: #a0a0b0;
+    --primary: #1a1a2e;
+    --secondary: #16213e;
+    --accent: #e2b04a;
+    --accent-hover: #f0c96b;
+    --success: #2ecc71;
+    --danger: #e74c3c;
+    --accent-opacity: rgba(226, 176, 74, 0.2);
+}
+
+/* ── Utility Classes for dynamic vars ── */
+@utility bg-bg {
+    background-color: var(--bg);
+}
+
+@utility bg-card {
+    background-color: var(--card-bg);
+}
+
+@utility text-heading {
+    color: var(--text-main);
+}
+
+@utility text-body {
+    color: var(--text-muted);
+}
+
+@utility border-accent-10 {
+    border-color: var(--accent-opacity);
+}
+
+body {
+    background-color: var(--bg);
+    color: var(--text-main);
+    transition: background-color 0.4s ease, color 0.4s ease;
+}

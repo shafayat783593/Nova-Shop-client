@@ -1,0 +1,35 @@
+'use client';
+import { usePathname } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion'; 
+import Navbar from './Navbar';
+import Footer from './Footer';
+
+
+export default function LayoutWrapper({ children }) {
+    const pathname = usePathname();
+
+    const hideNavFooter = ['/dashboard', '/login', '/register', '/verify'].some((path) =>
+        pathname.startsWith(path)
+    );
+
+    return (
+        <>
+            {!hideNavFooter && <Navbar />}
+
+      
+            <AnimatePresence mode="wait">
+                <motion.main
+                    key={pathname}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.3 }}
+                >
+                    {children}
+                </motion.main>
+            </AnimatePresence>
+
+            {!hideNavFooter && <Footer />}
+        </>
+    );
+}
