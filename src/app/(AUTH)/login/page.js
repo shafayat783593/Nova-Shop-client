@@ -48,10 +48,21 @@ const LoginPage = () => {
 
   const onSubmit = async (data) => {
     try {
-      await api.post('/api/auth/login', data);
-      localStorage.setItem('temp_email', data.email);
-      toast.success('OTP sent to your email!');
-      router.push('/verify-otp');
+      const response = await api.post('/api/auth/login', data);
+
+      // If 2FA is enabled, redirect to verify OTP
+      if (response?.data?.twoFactorRequired) {
+        localStorage.setItem('temp_email', data.email);
+        toast.success(response.data.message || 'OTP sent to your email!');
+        router.push('/verify-otp');
+      } else {
+        // Direct login → go to home page
+        // You can also store tokens if needed
+        localStorage.setItem('accessToken', response.data.accessToken);
+        localStorage.setItem('refreshToken', response.data.refreshToken);
+        toast.success(response.data.message || 'Login successful!');
+        router.push('/'); // Home page
+      }
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Invalid credentials');
     }
