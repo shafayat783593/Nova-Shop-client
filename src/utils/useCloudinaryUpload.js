@@ -1,5 +1,5 @@
+import api from "@/app/lib/api";
 import { useCallback, useRef, useState } from "react";
-import API from "./axiosConfig";
 /* =====================================================
    CONSTANTS (FIXED)
 ===================================================== */
@@ -64,7 +64,7 @@ const useCloudinaryUpload = () => {
             validateFile(file);
 
             // 2️⃣ Get Cloudinary signature
-            const signRes = await API.get("/api/cloudinary-sign", {
+            const signRes = await api.get("/api/cloudinary-sign", {
                 params: { folder },
             });
             const { signature, timestamp, apiKey, cloudName } = signRes.data;
