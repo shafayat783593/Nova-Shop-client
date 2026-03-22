@@ -39,6 +39,6 @@ function createPrivateRoute(allowedRole) {
 // ─── Three Guards ─────────────────────────────────────────────────────────────
 
 export const UserRoute = createPrivateRoute('customer');
-export const DeliveryboyRoute = createPrivateRoute('deliveryboy');
-export const OwnerRoute = createPrivateRoute('owner');
+export const DeliveryboyRoute = createPrivateRoute('support');
+export const OwnerRoute = createPrivateRoute('vendor');
 export const AdminRoute = createPrivateRoute('admin');

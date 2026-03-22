@@ -335,9 +335,11 @@ export default function SettingsPage() {
                 name: profileName.trim(),
                 avatar: avatarUrl,          // already uploaded URL from Cloudinary
             });
+            console.log("Profile updated:", data);
             setAuthUser(data.user);
             showToast("Profile updated successfully");
         } catch (e) {
+            console.log(e?.response?.data?.message)
             showToast(e?.response?.data?.message || "Failed to update profile", "error");
         } finally {
             setProfileLoading(false);

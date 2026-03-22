@@ -10,6 +10,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import api from '../../lib/api';
 import PrimaryButton from '../../components/global/PrimaryButton';
+import { useAuth } from '@/app/context/AuthContext';
 
 const sliderImages = [
   {
@@ -32,11 +33,12 @@ const sliderImages = [
   }
 ];
 
+;
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const router = useRouter();
-
+  const { fetchUser } = useAuth()
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
 
   useEffect(() => {
@@ -60,6 +62,7 @@ const LoginPage = () => {
         // You can also store tokens if needed
         localStorage.setItem('accessToken', response.data.accessToken);
         localStorage.setItem('refreshToken', response.data.refreshToken);
+        await fetchUser();
         toast.success(response.data.message || 'Login successful!');
         router.push('/'); // Home page
       }
