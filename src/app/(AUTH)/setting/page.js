@@ -255,8 +255,22 @@ function AvatarUpload({ currentAvatar, initials, onUploaded }) {
    MAIN PAGE
 ═══════════════════════════════════════════════════ */
 export default function SettingsPage() {
-    const { user: authUser, setUser: setAuthUser } = useAuth();
+    const {
+        user: authUser,
+        setUser: setAuthUser,
+        // Sessions — সব AuthContext থেকে
+        sessions,
+        sessionsLoading,
+        revokingId,
+        fetchSessions,
+        revokeSession,
+        logOutAllDevices,
+    } = useAuth();
 
+    // sessions fetch করো mount এ
+    useEffect(() => {
+        fetchSessions();
+    }, [fetchSessions]);
     const [profileName, setProfileName] = useState(authUser?.name || "");
     const [avatarUrl, setAvatarUrl] = useState(authUser?.avatar || null);
     const [profileLoading, setProfileLoading] = useState(false);
@@ -277,10 +291,6 @@ export default function SettingsPage() {
     });
     const [notifsLoading, setNotifsLoading] = useState({});
 
-    // ✅ Real sessions state
-    const [sessions, setSessions] = useState([]);
-    const [sessionsLoading, setSessionsLoading] = useState(true);
-    const [revokingId, setRevokingId] = useState(null);
 
     const [logoutModal, setLogoutModal] = useState(false);
     const [logoutLoading, setLogoutLoading] = useState(false);
@@ -294,21 +304,7 @@ export default function SettingsPage() {
         setTimeout(() => setToast(null), 4000);
     };
 
-    // ✅ Fetch real sessions on mount
-    useEffect(() => {
-        async function fetchSessions() {
-            try {
-                const { data } = await api.get("/api/settings/sessions");
-                setSessions(data.sessions || []);
-            } catch {
-                // silently fail — sessions will just be empty
-            } finally {
-                setSessionsLoading(false);
-            }
-        }
-        fetchSessions();
-    }, []);
-
+   
     // ── Save profile ───────────────────────────────────
     async function handleProfileSave() {
         if (!profileName.trim()) return showToast("Name cannot be empty", "error");
@@ -374,32 +370,22 @@ export default function SettingsPage() {
 
     // ✅ Revoke ONE session
     async function handleRevokeSession(sessionId) {
-        setRevokingId(sessionId);
-        try {
-            await api.delete(`/api/settings/sessions/${sessionId}`);
-            setSessions(prev => prev.filter(s => s.sessionId !== sessionId));
-            showToast("Device logged out");
-        } catch (e) {
-            showToast(e?.response?.data?.message || "Failed to revoke session", "error");
-        } finally {
-            setRevokingId(null);
-        }
+        const result = await revokeSession(sessionId);
+        if (!result.success) showToast(result.message, "error");
+        else showToast("Device logged out");
     }
 
     // ✅ FIXED: was api.post — now api.delete
     async function handleLogoutAll() {
         setLogoutLoading(true);
-        try {
-            await api.delete("/api/settings/logout-all");
-            setLogoutModal(false);
-            showToast("Logged out from all devices");
-            setTimeout(() => { window.location.href = "/login"; }, 1500);
-        } catch (e) {
-            showToast(e?.response?.data?.message || "Failed to logout", "error");
-        } finally {
-            setLogoutLoading(false);
+        const result = await logOutAllDevices();
+        setLogoutLoading(false);
+        if (!result.success) {
+            showToast(result.message, "error");
         }
+        // success হলে AuthContext নিজেই /login এ redirect করবে
     }
+
 
     // ── Delete account ─────────────────────────────────
     async function handleDeleteAccount() {

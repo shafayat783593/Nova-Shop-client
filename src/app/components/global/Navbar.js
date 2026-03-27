@@ -3,11 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import NextImage from "next/image";
 import {
   Sun, Moon, Search, Heart, ShoppingCart, Menu, X,
   ChevronDown, ChevronRight, LogOut, User, Package,
-  MapPin, CreditCard, Settings, Loader2,
+  MapPin, CreditCard, Settings, Loader2, LayoutDashboard,
 } from "lucide-react";
 import { useAuth } from "@/app/context/AuthContext";
 import api from "@/app/lib/api";
@@ -42,6 +41,21 @@ const ACCOUNT_LINKS = [
 ];
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Role → dashboard redirect
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const ROLE_REDIRECT = {
+  admin: "/admin",
+  vendor: "/vendor",  // vendor → info page
+  deliveryboy: "/deliveryboy",
+  customer: "/customer",
+};
+
+function getDashboardHref(user) {
+  const role = (user?.role || "customer").toLowerCase();
+  return ROLE_REDIRECT[role] || "/customer";
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Helpers
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function getInitials(name) {
@@ -50,7 +64,7 @@ function getInitials(name) {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Avatar — next/image ব্যবহার করছে
+// Avatar
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function Avatar({ src, name, size = 28, className = "", ring = false }) {
   const initials = getInitials(name);
@@ -62,13 +76,7 @@ function Avatar({ src, name, size = 28, className = "", ring = false }) {
         style={{ width: size, height: size }}
         className={`relative rounded-lg overflow-hidden flex-shrink-0 ${ringClass} ${className}`}
       >
-        <Image
-          src={src}
-          alt={name || "avatar"}
-          fill
-          sizes={`${size}px`}
-          className="object-cover"
-        />
+        <Image src={src} alt={name || "avatar"} fill sizes={`${size}px`} className="object-cover" />
       </div>
     );
   }
@@ -77,7 +85,7 @@ function Avatar({ src, name, size = 28, className = "", ring = false }) {
     <div
       style={{ width: size, height: size, fontSize: size * 0.35 }}
       className={`rounded-lg bg-primary flex items-center justify-center
-                text-accent font-black nb-font-display flex-shrink-0 ${ringClass} ${className}`}
+                  text-accent font-black nb-font-display flex-shrink-0 ${ringClass} ${className}`}
     >
       {initials}
     </div>
@@ -85,12 +93,9 @@ function Avatar({ src, name, size = 28, className = "", ring = false }) {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// TanStack Query — fetch functions
+// TanStack Query fetch functions
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const fetchProfile = async () => {
-  const { data } = await api.get("/api/user/profile");
-  return data;
-};
+const fetchProfile = async () => { const { data } = await api.get("/api/user/profile"); return data; };
 
 const fetchBadges = async () => {
   const [ordersRes, wishlistRes, cartRes] = await Promise.allSettled([
@@ -111,14 +116,13 @@ const fetchPromo = async () => {
 };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Sub-components
+// MegaMenu
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function MegaMenu({ items, show }) {
   return (
     <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-4 w-96 z-50
             transition-all duration-300
-            ${show
-        ? "opacity-100 translate-y-0 pointer-events-auto"
+            ${show ? "opacity-100 translate-y-0 pointer-events-auto"
         : "opacity-0 -translate-y-2 pointer-events-none"}`}>
       <div className="flex justify-center -mb-px">
         <div className="w-3 h-3 bg-card border-l border-t border-accent/30 rotate-45 z-10" />
@@ -127,9 +131,9 @@ function MegaMenu({ items, show }) {
         {items.map((item) => (
           <Link key={item.name} href={item.href}
             className="flex items-center gap-3 p-3 rounded-xl
-                            hover:bg-accent/20 transition-all duration-200 group no-underline">
+                       hover:bg-accent/20 transition-all duration-200 group no-underline">
             <span className="text-xl w-9 h-9 flex items-center justify-center
-                            bg-accent/20 rounded-xl group-hover:bg-accent/35 transition-colors flex-shrink-0">
+                             bg-accent/20 rounded-xl group-hover:bg-accent/35 transition-colors flex-shrink-0">
               {item.icon}
             </span>
             <div>
@@ -143,22 +147,26 @@ function MegaMenu({ items, show }) {
   );
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ProfileDropdown  ← Dashboard link যোগ হয়েছে
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function ProfileDropdown({ show, onClose, user, profileData, badgeCounts, onLogout, isLoading }) {
   const displayName = profileData?.name || user?.name || user?.email || "User";
   const email = profileData?.email || user?.email || "";
   const avatarSrc = profileData?.avatar || user?.avatar || null;
+  const dashHref = getDashboardHref(user);
 
   return (
     <div className={`absolute top-full right-0 mt-4 w-72 z-50
             transition-all duration-300
-            ${show
-        ? "opacity-100 translate-y-0 pointer-events-auto"
+            ${show ? "opacity-100 translate-y-0 pointer-events-auto"
         : "opacity-0 -translate-y-2 pointer-events-none"}`}>
       <div className="flex justify-end pr-4 -mb-px">
         <div className="w-3 h-3 bg-card border-l border-t border-accent/30 rotate-45 z-10" />
       </div>
 
       <div className="bg-card border border-accent/20 rounded-2xl shadow-2xl overflow-hidden">
+
         {/* Profile Header */}
         <div className="bg-primary px-5 pt-5 pb-8 relative overflow-hidden">
           <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full bg-white/5" />
@@ -166,16 +174,13 @@ function ProfileDropdown({ show, onClose, user, profileData, badgeCounts, onLogo
           <div className="relative flex items-center gap-3">
             <div className="relative flex-shrink-0">
               {isLoading ? (
-                <div className="w-[52px] h-[52px] rounded-2xl bg-accent/30
-                                    flex items-center justify-center">
+                <div className="w-[52px] h-[52px] rounded-2xl bg-accent/30 flex items-center justify-center">
                   <Loader2 size={20} className="text-accent animate-spin" />
                 </div>
               ) : (
-                <Avatar src={avatarSrc} name={displayName} size={52}
-                  className="rounded-2xl shadow-lg" />
+                <Avatar src={avatarSrc} name={displayName} size={52} className="rounded-2xl shadow-lg" />
               )}
-              <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5
-                                bg-success rounded-full border-2 border-primary" />
+              <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-success rounded-full border-2 border-primary" />
             </div>
 
             <div className="min-w-0 flex-1">
@@ -186,14 +191,9 @@ function ProfileDropdown({ show, onClose, user, profileData, badgeCounts, onLogo
                 </div>
               ) : (
                 <>
-                  <p className="font-black text-[15px] text-accent m-0 truncate nb-font-display">
-                    {displayName}
-                  </p>
-                  <p className="text-[11px] text-accent/60 mt-0.5 mb-1.5 m-0 truncate">
-                    {email}
-                  </p>
-                  <span className="text-[10px] font-bold bg-accent/15
-                                        text-accent px-2.5 py-0.5 rounded-full">
+                  <p className="font-black text-[15px] text-accent m-0 truncate nb-font-display">{displayName}</p>
+                  <p className="text-[11px] text-accent/60 mt-0.5 mb-1.5 m-0 truncate">{email}</p>
+                  <span className="text-[10px] font-bold bg-accent/15 text-accent px-2.5 py-0.5 rounded-full">
                     {profileData?.membershipLevel || "✦ Member"}
                   </span>
                 </>
@@ -202,8 +202,19 @@ function ProfileDropdown({ show, onClose, user, profileData, badgeCounts, onLogo
           </div>
         </div>
 
+        {/* ✅ Dashboard Button — role অনুযায়ী redirect */}
+        <div className="px-3 pt-3 pb-1">
+          <Link href={dashHref} onClick={onClose}
+            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl
+                       bg-primary hover:bg-secondary text-accent text-sm font-bold
+                       transition-all no-underline nb-font">
+            <LayoutDashboard size={15} />
+            My Dashboard
+          </Link>
+        </div>
+
         {/* Stats */}
-        <div className="grid grid-cols-3 border-b border-accent/10">
+        <div className="grid grid-cols-3 border-b border-accent/10 mt-2">
           {[
             [badgeCounts?.orders ?? 0, "Orders"],
             [profileData?.reviews ?? 0, "Reviews"],
@@ -211,7 +222,7 @@ function ProfileDropdown({ show, onClose, user, profileData, badgeCounts, onLogo
           ].map(([v, l], i) => (
             <div key={l}
               className={`text-center py-2.5 cursor-pointer hover:bg-accent/10 transition-colors
-                                ${i < 2 ? "border-r border-accent/10" : ""}`}>
+                          ${i < 2 ? "border-r border-accent/10" : ""}`}>
               <p className="text-sm font-black text-accent m-0">
                 {isLoading
                   ? <span className="inline-block h-4 w-6 bg-accent/20 rounded animate-pulse" />
@@ -230,18 +241,15 @@ function ProfileDropdown({ show, onClose, user, profileData, badgeCounts, onLogo
             return (
               <Link key={item.label} href={item.href} onClick={onClose}
                 className="flex items-center justify-between px-3 py-2.5
-                                    rounded-xl hover:bg-accent/15 transition-all group no-underline">
+                           rounded-xl hover:bg-accent/15 transition-all group no-underline">
                 <div className="flex items-center gap-2.5">
-                  <Icon size={15} className="text-body group-hover:text-primary
-                                        transition-colors flex-shrink-0" />
-                  <span className="text-sm font-semibold text-heading
-                                        group-hover:text-primary transition-colors">
+                  <Icon size={15} className="text-body group-hover:text-primary transition-colors flex-shrink-0" />
+                  <span className="text-sm font-semibold text-heading group-hover:text-primary transition-colors">
                     {item.label}
                   </span>
                 </div>
                 {badgeVal > 0 && (
-                  <span className="text-[10px] font-black bg-accent
-                                        text-primary px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-black bg-accent text-primary px-2 py-0.5 rounded-full">
                     {badgeVal}
                   </span>
                 )}
@@ -254,8 +262,8 @@ function ProfileDropdown({ show, onClose, user, profileData, badgeCounts, onLogo
         <div className="p-2 pt-0 border-t border-accent/10">
           <button onClick={onLogout}
             className="w-full flex items-center justify-center gap-2 py-2.5
-                            rounded-xl bg-danger/10 text-danger text-sm font-bold
-                            hover:bg-danger/20 transition-colors border-none cursor-pointer nb-font">
+                       rounded-xl bg-danger/10 text-danger text-sm font-bold
+                       hover:bg-danger/20 transition-colors border-none cursor-pointer nb-font">
             <LogOut size={15} />
             Sign Out
           </button>
@@ -269,8 +277,7 @@ function GuestDropdown({ show }) {
   return (
     <div className={`absolute top-full right-0 mt-4 w-56 z-50
             transition-all duration-300
-            ${show
-        ? "opacity-100 translate-y-0 pointer-events-auto"
+            ${show ? "opacity-100 translate-y-0 pointer-events-auto"
         : "opacity-0 -translate-y-2 pointer-events-none"}`}>
       <div className="flex justify-end pr-4 -mb-px">
         <div className="w-3 h-3 bg-card border-l border-t border-accent/30 rotate-45 z-10" />
@@ -279,14 +286,14 @@ function GuestDropdown({ show }) {
         <p className="text-xs text-body text-center pb-1">Sign in to access your account</p>
         <Link href="/login"
           className="flex items-center justify-center w-full py-2.5 rounded-xl
-                        bg-primary text-accent text-sm font-bold hover:bg-secondary
-                        transition-colors no-underline">
+                     bg-primary text-accent text-sm font-bold hover:bg-secondary
+                     transition-colors no-underline">
           Sign In
         </Link>
         <Link href="/register"
           className="flex items-center justify-center w-full py-2.5 rounded-xl
-                        border border-accent/30 text-heading text-sm font-bold
-                        hover:bg-accent/15 transition-colors no-underline">
+                     border border-accent/30 text-heading text-sm font-bold
+                     hover:bg-accent/15 transition-colors no-underline">
           Create Account
         </Link>
       </div>
@@ -314,135 +321,106 @@ export default function Navbar() {
   const profileRef = useRef(null);
   const searchRef = useRef(null);
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // TanStack Query
-  // isAuth true হওয়ার সাথে সাথে fetch শুরু — reload লাগবে না
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  const {
-    data: profileData,
-    isLoading: profileLoading,
-  } = useQuery({
+  const { data: profileData, isLoading: profileLoading } = useQuery({
     queryKey: ["navbar-profile"],
     queryFn: fetchProfile,
-    enabled: !!isAuth,         // ✅ isAuth true হলেই চলবে
-    staleTime: 1000 * 60 * 5,   // 5 min cache
+    enabled: !!isAuth,
+    staleTime: 1000 * 60 * 5,
     retry: 1,
   });
 
-  const {
-    data: badgeCounts = { orders: 0, wishlist: 0, cart: 0 },
-  } = useQuery({
+  const { data: badgeCounts = { orders: 0, wishlist: 0, cart: 0 } } = useQuery({
     queryKey: ["navbar-badges"],
     queryFn: fetchBadges,
-    enabled: !!isAuth,         // ✅ isAuth true হলেই চলবে
-    staleTime: 1000 * 60 * 2,   // 2 min cache
+    enabled: !!isAuth,
+    staleTime: 1000 * 60 * 2,
     retry: 1,
   });
 
   const { data: promoRaw } = useQuery({
     queryKey: ["navbar-promo"],
     queryFn: fetchPromo,
-    staleTime: 1000 * 60 * 30,  // 30 min cache
+    staleTime: 1000 * 60 * 30,
     retry: 1,
   });
 
-  // Promo text duplicate করো — animation smooth হবে
   const promoText = promoRaw ? `${promoRaw} · ${promoRaw}` : "🌿 Free shipping on orders $50+";
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // Effects
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   useEffect(() => setMounted(true), []);
-
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 8);
     window.addEventListener("scroll", fn);
     return () => window.removeEventListener("scroll", fn);
   }, []);
-
   useEffect(() => {
     const fn = () => { if (window.innerWidth >= 1024) setDrawerOpen(false); };
     window.addEventListener("resize", fn);
     return () => window.removeEventListener("resize", fn);
   }, []);
-
   useEffect(() => {
     document.body.style.overflow = drawerOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [drawerOpen]);
-
   useEffect(() => {
     const fn = (e) => {
-      if (profileRef.current && !profileRef.current.contains(e.target))
-        setProfileOpen(false);
+      if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
     };
     document.addEventListener("mousedown", fn);
     return () => document.removeEventListener("mousedown", fn);
   }, []);
-
   useEffect(() => {
     if (searchOpen) setTimeout(() => searchRef.current?.focus(), 150);
   }, [searchOpen]);
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // Handlers
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   const onMegaEnter = (label) => { clearTimeout(megaTimer.current); setMegaOpen(label); };
   const onMegaLeave = () => { megaTimer.current = setTimeout(() => setMegaOpen(null), 150); };
   const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
-
   const handleSearch = (e) => {
-    if (e.key === "Enter" && searchQuery.trim()) {
+    if (e.key === "Enter" && searchQuery.trim())
       window.location.href = `/search?q=${encodeURIComponent(searchQuery.trim())}`;
-    }
   };
-
   const handleLogout = async () => {
     setProfileOpen(false);
     setDrawerOpen(false);
-    // ✅ Logout হলে cache clear করো
     queryClient.removeQueries({ queryKey: ["navbar-profile"] });
     queryClient.removeQueries({ queryKey: ["navbar-badges"] });
     try { await logOutUser(); } catch { }
   };
 
-  // Display helpers
   const displayName = profileData?.name || user?.name || user?.email || "";
   const avatarSrc = profileData?.avatar || user?.avatar || null;
-  const initials = getInitials(displayName);
+  const dashHref = getDashboardHref(user);
 
   return (
     <>
       <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=Nunito:wght@400;500;600;700;800&display=swap');
-                .nb-font         { font-family: 'Nunito', sans-serif; }
-                .nb-font-display { font-family: 'Syne',   sans-serif; }
-                .nb-link { position: relative; text-decoration: none; }
-                .nb-link::after {
-                    content: ''; position: absolute; bottom: -2px; left: 50%;
-                    width: 0; height: 2.5px; border-radius: 2px;
-                    background: var(--accent);
-                    transition: width .25s ease, left .25s ease;
-                }
-                .nb-link:hover::after { width: 100%; left: 0; }
-                @keyframes nb-tick {
-                    from { transform: translateX(110%); }
-                    to   { transform: translateX(-110%); }
-                }
-                .nb-ticker { animation: nb-tick 26s linear infinite; white-space: nowrap; }
-                @keyframes nb-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(1.9)} }
-                .nb-pulse { animation: nb-pulse 2.2s ease infinite; }
-                .nb-search { max-height: 0; overflow: hidden; transition: max-height .35s cubic-bezier(.4,0,.2,1); }
-                .nb-search.open { max-height: 72px; }
-                .nb-drawer  { transition: transform .35s cubic-bezier(.4,0,.2,1); }
-                .nb-overlay { transition: opacity .3s ease; }
-            `}</style>
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=Nunito:wght@400;500;600;700;800&display=swap');
+        .nb-font         { font-family: 'Nunito', sans-serif; }
+        .nb-font-display { font-family: 'Syne',   sans-serif; }
+        .nb-link { position: relative; text-decoration: none; }
+        .nb-link::after {
+          content: ''; position: absolute; bottom: -2px; left: 50%;
+          width: 0; height: 2.5px; border-radius: 2px;
+          background: var(--accent);
+          transition: width .25s ease, left .25s ease;
+        }
+        .nb-link:hover::after { width: 100%; left: 0; }
+        @keyframes nb-tick { from { transform: translateX(110%); } to { transform: translateX(-110%); } }
+        .nb-ticker { animation: nb-tick 26s linear infinite; white-space: nowrap; }
+        @keyframes nb-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(1.9)} }
+        .nb-pulse  { animation: nb-pulse 2.2s ease infinite; }
+        .nb-search { max-height: 0; overflow: hidden; transition: max-height .35s cubic-bezier(.4,0,.2,1); }
+        .nb-search.open { max-height: 72px; }
+        .nb-drawer  { transition: transform .35s cubic-bezier(.4,0,.2,1); }
+        .nb-overlay { transition: opacity .3s ease; }
+      `}</style>
 
       {/* Promo Ticker */}
       <div className="bg-primary overflow-hidden h-8 flex items-center nb-font">
-        <p className="nb-ticker text-accent text-xs font-bold tracking-wide">
-          {promoText}
-        </p>
+        <p className="nb-ticker text-accent text-xs font-bold tracking-wide">{promoText}</p>
       </div>
 
       {/* Header */}
@@ -473,20 +451,29 @@ export default function Navbar() {
                 onMouseLeave={() => link.sub && onMegaLeave()}>
                 <Link href={link.href}
                   className="nb-link flex items-center gap-1 px-4 py-2
-                                        text-sm font-semibold text-body hover:text-heading
-                                        rounded-xl hover:bg-accent/15 transition-all duration-200">
+                             text-sm font-semibold text-body hover:text-heading
+                             rounded-xl hover:bg-accent/15 transition-all duration-200">
                   {link.label}
                   {link.sub && (
                     <ChevronDown size={13}
                       className={`text-body transition-transform duration-200
-                                                ${megaOpen === link.label ? "rotate-180" : ""}`} />
+                                  ${megaOpen === link.label ? "rotate-180" : ""}`} />
                   )}
                 </Link>
-                {link.sub && (
-                  <MegaMenu items={link.sub} show={megaOpen === link.label} />
-                )}
+                {link.sub && <MegaMenu items={link.sub} show={megaOpen === link.label} />}
               </div>
             ))}
+
+            {/* ✅ Dashboard link — only when logged in */}
+            {isAuth && (
+              <Link href={dashHref}
+                className="nb-link flex items-center gap-1.5 px-4 py-2
+                           text-sm font-semibold text-body hover:text-heading
+                           rounded-xl hover:bg-accent/15 transition-all duration-200">
+                <LayoutDashboard size={14} className="text-body" />
+                Dashboard
+              </Link>
+            )}
           </nav>
 
           {/* Right Actions */}
@@ -495,10 +482,8 @@ export default function Navbar() {
             {/* Search */}
             <button onClick={() => setSearchOpen(!searchOpen)} aria-label="Search"
               className={`w-[38px] h-[38px] rounded-xl flex items-center justify-center
-                                transition-all hover:scale-105 active:scale-95 border-none cursor-pointer
-                                ${searchOpen
-                  ? "bg-primary text-accent"
-                  : "bg-accent/20 text-heading hover:bg-accent/30"}`}>
+                          transition-all hover:scale-105 active:scale-95 border-none cursor-pointer
+                          ${searchOpen ? "bg-primary text-accent" : "bg-accent/20 text-heading hover:bg-accent/30"}`}>
               <Search size={17} />
             </button>
 
@@ -506,16 +491,14 @@ export default function Navbar() {
             {mounted && (
               <button onClick={toggleTheme} aria-label="Toggle theme"
                 className="relative w-[38px] h-[38px] rounded-xl bg-accent/20 text-heading
-                                    flex items-center justify-center hover:bg-accent/30
-                                    transition-all hover:scale-105 active:scale-95 border-none cursor-pointer overflow-hidden">
-                <span className={`absolute flex items-center justify-center
-                                    transition-all duration-300
-                                    ${theme === "dark" ? "opacity-100 rotate-0" : "opacity-0 -rotate-90"}`}>
+                           flex items-center justify-center hover:bg-accent/30
+                           transition-all hover:scale-105 active:scale-95 border-none cursor-pointer overflow-hidden">
+                <span className={`absolute flex items-center justify-center transition-all duration-300
+                                  ${theme === "dark" ? "opacity-100 rotate-0" : "opacity-0 -rotate-90"}`}>
                   <Sun size={17} />
                 </span>
-                <span className={`absolute flex items-center justify-center
-                                    transition-all duration-300
-                                    ${theme !== "dark" ? "opacity-100 rotate-0" : "opacity-0 rotate-90"}`}>
+                <span className={`absolute flex items-center justify-center transition-all duration-300
+                                  ${theme !== "dark" ? "opacity-100 rotate-0" : "opacity-0 rotate-90"}`}>
                   <Moon size={17} />
                 </span>
               </button>
@@ -526,13 +509,13 @@ export default function Navbar() {
               <div className="hidden sm:block relative">
                 <Link href="/account/wishlist" aria-label="Wishlist"
                   className="w-[38px] h-[38px] rounded-xl bg-accent/20 text-heading
-                                        flex items-center justify-center hover:bg-accent/30
-                                        transition-all hover:scale-105 active:scale-95 no-underline">
+                             flex items-center justify-center hover:bg-accent/30
+                             transition-all hover:scale-105 active:scale-95 no-underline">
                   <Heart size={17} />
                 </Link>
                 {badgeCounts.wishlist > 0 && (
                   <span className="nb-pulse absolute -top-1 -right-1 w-2.5 h-2.5
-                                        bg-danger rounded-full border-2 border-card" />
+                                   bg-danger rounded-full border-2 border-card" />
                 )}
               </div>
             )}
@@ -540,13 +523,13 @@ export default function Navbar() {
             {/* Cart */}
             <Link href="/cart" aria-label="Cart"
               className="hidden sm:flex items-center gap-2 bg-primary hover:bg-secondary
-                                text-accent h-[38px] px-4 rounded-xl text-sm font-bold
-                                transition-all hover:scale-105 active:scale-95
-                                border-none cursor-pointer nb-font no-underline">
+                         text-accent h-[38px] px-4 rounded-xl text-sm font-bold
+                         transition-all hover:scale-105 active:scale-95
+                         border-none cursor-pointer nb-font no-underline">
               <ShoppingCart size={17} />
               <span>Cart</span>
               <span className="bg-accent text-primary text-[10px] font-black
-                                w-5 h-5 rounded-full flex items-center justify-center">
+                               w-5 h-5 rounded-full flex items-center justify-center">
                 {badgeCounts.cart || 0}
               </span>
             </Link>
@@ -554,8 +537,7 @@ export default function Navbar() {
             {/* Profile / Auth */}
             <div className="hidden sm:block relative" ref={profileRef}>
               {authLoading ? (
-                <div className="w-[38px] h-[38px] rounded-xl bg-accent/15
-                                    flex items-center justify-center">
+                <div className="w-[38px] h-[38px] rounded-xl bg-accent/15 flex items-center justify-center">
                   <Loader2 size={16} className="text-accent animate-spin" />
                 </div>
               ) : isAuth ? (
@@ -564,23 +546,15 @@ export default function Navbar() {
                     onClick={() => setProfileOpen(!profileOpen)}
                     aria-label="Profile"
                     className={`flex items-center gap-2 h-[38px] pl-1.5 pr-3
-                                            rounded-xl transition-all hover:scale-105 active:scale-95
-                                            border-none cursor-pointer nb-font
-                                            ${profileOpen ? "bg-accent/20" : "bg-transparent hover:bg-accent/12"}`}>
-                    {/* ✅ next/image দিয়ে Avatar */}
-                    <Avatar
-                      src={avatarSrc}
-                      name={displayName}
-                      size={28}
-                      ring={profileOpen}
-                    />
-                    <span className="text-sm font-semibold text-heading
-                                            hidden lg:block max-w-[80px] truncate">
+                                rounded-xl transition-all hover:scale-105 active:scale-95
+                                border-none cursor-pointer nb-font
+                                ${profileOpen ? "bg-accent/20" : "bg-transparent hover:bg-accent/12"}`}>
+                    <Avatar src={avatarSrc} name={displayName} size={28} ring={profileOpen} />
+                    <span className="text-sm font-semibold text-heading hidden lg:block max-w-[80px] truncate">
                       {displayName.split(" ")[0] || "Account"}
                     </span>
                     <ChevronDown size={13}
-                      className={`text-body transition-transform duration-200
-                                                ${profileOpen ? "rotate-180" : ""}`} />
+                      className={`text-body transition-transform duration-200 ${profileOpen ? "rotate-180" : ""}`} />
                   </button>
 
                   <ProfileDropdown
@@ -598,13 +572,11 @@ export default function Navbar() {
                   <button
                     onClick={() => setProfileOpen(!profileOpen)}
                     className={`flex items-center gap-2 h-[38px] px-3
-                                            rounded-xl transition-all hover:scale-105 active:scale-95
-                                            border-none cursor-pointer nb-font
-                                            ${profileOpen ? "bg-accent/20" : "bg-accent/15 hover:bg-accent/25"}`}>
+                                rounded-xl transition-all hover:scale-105 active:scale-95
+                                border-none cursor-pointer nb-font
+                                ${profileOpen ? "bg-accent/20" : "bg-accent/15 hover:bg-accent/25"}`}>
                     <User size={16} className="text-heading" />
-                    <span className="text-sm font-semibold text-heading hidden lg:block">
-                      Sign In
-                    </span>
+                    <span className="text-sm font-semibold text-heading hidden lg:block">Sign In</span>
                   </button>
                   <GuestDropdown show={profileOpen} />
                 </>
@@ -614,8 +586,8 @@ export default function Navbar() {
             {/* Hamburger */}
             <button onClick={() => setDrawerOpen(true)} aria-label="Open menu"
               className="lg:hidden w-[38px] h-[38px] rounded-xl bg-accent/20 text-heading
-                                flex items-center justify-center hover:bg-accent/30
-                                transition-all border-none cursor-pointer ml-0.5">
+                         flex items-center justify-center hover:bg-accent/30
+                         transition-all border-none cursor-pointer ml-0.5">
               <Menu size={20} />
             </button>
           </div>
@@ -634,14 +606,14 @@ export default function Navbar() {
                 onKeyDown={handleSearch}
                 placeholder="Search organic products, brands, categories... (Enter to search)"
                 className="w-full bg-bg border border-accent/20 text-heading
-                                    placeholder:text-body text-sm pl-10 pr-10 py-2.5 rounded-xl
-                                    outline-none focus:border-accent transition-colors nb-font"
+                           placeholder:text-body text-sm pl-10 pr-10 py-2.5 rounded-xl
+                           outline-none focus:border-accent transition-colors nb-font"
               />
               <button
                 onClick={() => { setSearchOpen(false); setSearchQuery(""); }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-body
-                                    hover:text-heading transition-colors text-xl leading-none
-                                    bg-transparent border-none cursor-pointer">
+                           hover:text-heading transition-colors text-xl leading-none
+                           bg-transparent border-none cursor-pointer">
                 ×
               </button>
             </div>
@@ -662,8 +634,7 @@ export default function Navbar() {
                 ${drawerOpen ? "translate-x-0" : "-translate-x-full"}`}>
 
         {/* Drawer Header */}
-        <div className="flex items-center justify-between px-4 h-[68px]
-                    border-b border-accent/15 flex-shrink-0">
+        <div className="flex items-center justify-between px-4 h-[68px] border-b border-accent/15 flex-shrink-0">
           <Link href="/" className="flex items-center gap-2 no-underline">
             <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center text-lg">🌿</div>
             <span className="text-lg font-black nb-font-display">
@@ -673,8 +644,8 @@ export default function Navbar() {
           </Link>
           <button onClick={() => setDrawerOpen(false)}
             className="w-9 h-9 rounded-xl bg-accent/15 text-heading
-                            flex items-center justify-center hover:bg-accent/25
-                            transition-all border-none cursor-pointer">
+                       flex items-center justify-center hover:bg-accent/25
+                       transition-all border-none cursor-pointer">
             <X size={20} />
           </button>
         </div>
@@ -685,7 +656,7 @@ export default function Navbar() {
             <div className="w-12 h-12 rounded-[13px] bg-accent/20 animate-pulse" />
             <div className="space-y-2 flex-1">
               <div className="h-3.5 w-28 bg-accent/20 rounded animate-pulse" />
-              <div className="h-3 w-36 bg-accent/15 rounded animate-pulse" />
+              <div className="h-3   w-36 bg-accent/15 rounded animate-pulse" />
             </div>
           </div>
         ) : isAuth ? (
@@ -694,16 +665,11 @@ export default function Navbar() {
             <div className="absolute -bottom-6 -left-4 w-[80px] h-[80px] rounded-full bg-white/5" />
             <div className="relative flex items-center gap-3">
               <div className="relative flex-shrink-0">
-                {/* ✅ next/image */}
-                <Avatar src={avatarSrc} name={displayName} size={48}
-                  className="rounded-[13px] shadow-lg" />
-                <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5
-                                    bg-success rounded-full border-2 border-primary" />
+                <Avatar src={avatarSrc} name={displayName} size={48} className="rounded-[13px] shadow-lg" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-success rounded-full border-2 border-primary" />
               </div>
               <div className="min-w-0">
-                <p className="font-black text-sm text-accent m-0 nb-font-display truncate">
-                  {displayName}
-                </p>
+                <p className="font-black text-sm text-accent m-0 nb-font-display truncate">{displayName}</p>
                 <p className="text-[11px] text-accent/55 mt-0.5 mb-1.5 m-0 truncate">
                   {profileData?.email || user?.email}
                 </p>
@@ -712,7 +678,17 @@ export default function Navbar() {
                 </span>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-2 mt-3.5">
+
+            {/* ✅ Dashboard button in drawer profile section */}
+            <Link href={dashHref} onClick={() => setDrawerOpen(false)}
+              className="flex items-center justify-center gap-2 mt-3.5 w-full py-2 rounded-xl
+                         bg-accent/12 hover:bg-accent/20 text-accent text-xs font-bold
+                         transition-colors no-underline nb-font">
+              <LayoutDashboard size={13} />
+              Go to Dashboard
+            </Link>
+
+            <div className="grid grid-cols-3 gap-2 mt-2.5">
               {[
                 [badgeCounts.orders, "Orders"],
                 [profileData?.reviews ?? 0, "Reviews"],
@@ -735,14 +711,12 @@ export default function Navbar() {
             <div className="grid grid-cols-2 gap-2">
               <Link href="/login" onClick={() => setDrawerOpen(false)}
                 className="flex items-center justify-center py-2 rounded-xl
-                                    bg-accent text-primary text-sm font-bold no-underline
-                                    hover:bg-accent-hover transition-colors">
+                           bg-accent text-primary text-sm font-bold no-underline hover:bg-accent-hover transition-colors">
                 Sign In
               </Link>
               <Link href="/register" onClick={() => setDrawerOpen(false)}
                 className="flex items-center justify-center py-2 rounded-xl
-                                    border border-accent/40 text-accent text-sm font-bold no-underline
-                                    hover:bg-accent/10 transition-colors">
+                           border border-accent/40 text-accent text-sm font-bold no-underline hover:bg-accent/10 transition-colors">
                 Register
               </Link>
             </div>
@@ -765,8 +739,8 @@ export default function Navbar() {
                 }
               }}
               className="w-full bg-bg border border-accent/18 text-heading
-                                placeholder:text-body text-sm pl-9 pr-3.5 py-2.5 rounded-xl
-                                outline-none focus:border-accent transition-colors nb-font"
+                         placeholder:text-body text-sm pl-9 pr-3.5 py-2.5 rounded-xl
+                         outline-none focus:border-accent transition-colors nb-font"
             />
           </div>
         </div>
@@ -776,13 +750,14 @@ export default function Navbar() {
           <p className="text-[10px] font-extrabold uppercase tracking-[.18em] text-body px-2.5 mb-2">
             Navigation
           </p>
+
           {NAV_LINKS.map((link) => (
             <div key={link.label}>
               <Link href={link.href}
                 onClick={() => !link.sub && setDrawerOpen(false)}
                 className="nb-font flex items-center justify-between px-3 py-2.5
-                                    rounded-xl text-sm font-semibold text-body hover:text-heading
-                                    hover:bg-accent/15 transition-all no-underline">
+                           rounded-xl text-sm font-semibold text-body hover:text-heading
+                           hover:bg-accent/15 transition-all no-underline">
                 <span>{link.label}</span>
                 <ChevronRight size={14} className="text-body" />
               </Link>
@@ -792,8 +767,8 @@ export default function Navbar() {
                     <Link key={s.name} href={s.href}
                       onClick={() => setDrawerOpen(false)}
                       className="nb-font flex items-center gap-2.5 px-3 py-2
-                                                rounded-xl text-sm text-body hover:text-heading
-                                                hover:bg-accent/10 transition-all no-underline">
+                                 rounded-xl text-sm text-body hover:text-heading
+                                 hover:bg-accent/10 transition-all no-underline">
                       <span>{s.icon}</span>
                       <span className="font-medium">{s.name}</span>
                     </Link>
@@ -802,6 +777,17 @@ export default function Navbar() {
               )}
             </div>
           ))}
+
+          {/* ✅ Dashboard link in mobile nav */}
+          {isAuth && (
+            <Link href={dashHref} onClick={() => setDrawerOpen(false)}
+              className="nb-font flex items-center gap-2.5 px-3 py-2.5
+                         rounded-xl text-sm font-semibold text-body hover:text-heading
+                         hover:bg-accent/15 transition-all no-underline mt-0.5">
+              <LayoutDashboard size={14} className="text-body flex-shrink-0" />
+              Dashboard
+            </Link>
+          )}
 
           {isAuth && (
             <div className="border-t border-accent/10 mt-2 pt-3 space-y-0.5">
@@ -815,15 +801,14 @@ export default function Navbar() {
                   <Link key={item.label} href={item.href}
                     onClick={() => setDrawerOpen(false)}
                     className="nb-font flex items-center justify-between px-3 py-2.5
-                                            rounded-xl text-sm font-semibold text-body hover:text-heading
-                                            hover:bg-accent/15 transition-all no-underline">
+                               rounded-xl text-sm font-semibold text-body hover:text-heading
+                               hover:bg-accent/15 transition-all no-underline">
                     <span className="flex items-center gap-2.5">
                       <Icon size={15} className="text-body flex-shrink-0" />
                       {item.label}
                     </span>
                     {badgeVal > 0 && (
-                      <span className="text-[10px] font-black bg-accent
-                                                text-primary px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] font-black bg-accent text-primary px-2 py-0.5 rounded-full">
                         {badgeVal}
                       </span>
                     )}
@@ -840,15 +825,15 @@ export default function Navbar() {
             {mounted && (
               <button onClick={toggleTheme}
                 className="flex items-center justify-center gap-1.5 py-2.5
-                                    rounded-xl bg-accent/15 text-heading text-xs font-bold
-                                    hover:bg-accent/25 transition-colors border-none cursor-pointer nb-font">
+                           rounded-xl bg-accent/15 text-heading text-xs font-bold
+                           hover:bg-accent/25 transition-colors border-none cursor-pointer nb-font">
                 {theme === "dark" ? <><Sun size={13} /> Light</> : <><Moon size={13} /> Dark</>}
               </button>
             )}
             <Link href="/cart" onClick={() => setDrawerOpen(false)}
               className="flex items-center justify-center gap-1.5 py-2.5
-                                rounded-xl bg-primary text-accent text-xs font-bold
-                                hover:bg-secondary transition-colors no-underline nb-font">
+                         rounded-xl bg-primary text-accent text-xs font-bold
+                         hover:bg-secondary transition-colors no-underline nb-font">
               <ShoppingCart size={13} />
               Cart ({badgeCounts.cart || 0})
             </Link>
@@ -856,8 +841,8 @@ export default function Navbar() {
           {isAuth && (
             <button onClick={handleLogout}
               className="w-full flex items-center justify-center gap-2 py-2.5
-                                rounded-xl bg-danger/10 text-danger text-sm font-bold
-                                hover:bg-danger/20 transition-colors border-none cursor-pointer nb-font">
+                         rounded-xl bg-danger/10 text-danger text-sm font-bold
+                         hover:bg-danger/20 transition-colors border-none cursor-pointer nb-font">
               <LogOut size={15} /> Sign Out
             </button>
           )}
