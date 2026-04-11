@@ -396,7 +396,11 @@ export default function Navbar() {
 
   return (
     <>
-      <style>{`
+   
+
+
+      
+        <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=Nunito:wght@400;500;600;700;800&display=swap');
         .nb-font         { font-family: 'Nunito', sans-serif; }
         .nb-font-display { font-family: 'Syne',   sans-serif; }
@@ -417,6 +421,7 @@ export default function Navbar() {
         .nb-drawer  { transition: transform .35s cubic-bezier(.4,0,.2,1); }
         .nb-overlay { transition: opacity .3s ease; }
       `}</style>
+
 
       {/* Promo Ticker */}
       <div className="bg-primary overflow-hidden h-8 flex items-center nb-font">

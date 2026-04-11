@@ -11,6 +11,8 @@ import {
 import api from "@/app/lib/api";
 import useCloudinaryUpload from "@/utils/useCloudinaryUpload";
 import { useAuth } from "@/app/context/AuthContext";
+import { useRouter } from "next/navigation";
+
 
 /* ═══════════════════════════════════════════════════
    TOAST
@@ -297,6 +299,13 @@ export default function SettingsPage() {
     const [deleteModal, setDeleteModal] = useState(false);
     const [deletePw, setDeletePw] = useState("");
     const [deleteLoading, setDeleteLoading] = useState(false);
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!authUser) {
+            router.push(`/login?redirect=/setting`);        }
+    }, [authUser, router]);
+
 
     const [toast, setToast] = useState(null);
     const showToast = (message, type = "success") => {
@@ -304,7 +313,7 @@ export default function SettingsPage() {
         setTimeout(() => setToast(null), 4000);
     };
 
-   
+
     // ── Save profile ───────────────────────────────────
     async function handleProfileSave() {
         if (!profileName.trim()) return showToast("Name cannot be empty", "error");

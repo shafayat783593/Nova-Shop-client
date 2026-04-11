@@ -1,22 +1,20 @@
-"use client";
+'use client';
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+// ❌ useRouter import করবে না
 import api from "../lib/api";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    const router = useRouter();
+    // ❌ const router = useRouter();  -- এটা বাদ
+
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isAuth, setIsAuth] = useState(false);
-
-    // ── Sessions state ─────────────────────────────
     const [sessions, setSessions] = useState([]);
     const [sessionsLoading, setSessionsLoading] = useState(false);
     const [revokingId, setRevokingId] = useState(null);
 
-    // ── Fetch current user ─────────────────────────
     const fetchUser = async () => {
         try {
             const { data } = await api.get("/api/auth/me");
@@ -32,7 +30,6 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // ── Fetch all sessions ─────────────────────────
     const fetchSessions = useCallback(async () => {
         setSessionsLoading(true);
         try {
@@ -45,23 +42,24 @@ export const AuthProvider = ({ children }) => {
         }
     }, []);
 
-    // ── Logout current session (single device) ─────
+    // ✅ logout এ শুধু state clear করো, navigate করবে না
     const logOutUser = async () => {
-        // current session এর sessionId বের করো
-        const currentSession = sessions.find(s => s.isCurrent);
         try {
+            // ✅ আগে current session fetch করো
+            const { data } = await api.get("/api/settings/sessions");
+            const currentSession = data.sessions?.find(s => s.isCurrent);
+
             if (currentSession?.sessionId) {
                 await api.delete(`/api/settings/sessions/${currentSession.sessionId}`);
             }
-        } finally {
-            setUser(null);
-            setIsAuth(false);
-            setSessions([]);
-            router.push("/login");
+        } catch (e) {
+            console.error("Logout error:", e);
         }
+        setUser(null);
+        setIsAuth(false);
+        setSessions([]);
     };
 
-    // ── Revoke a specific session ──────────────────
     const revokeSession = async (sessionId) => {
         setRevokingId(sessionId);
         try {
@@ -78,14 +76,12 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // ── Logout from ALL devices ────────────────────
     const logOutAllDevices = async () => {
         try {
             await api.delete("/api/settings/logout-all");
             setUser(null);
             setIsAuth(false);
             setSessions([]);
-            router.push("/login");
             return { success: true };
         } catch (e) {
             return {
@@ -100,24 +96,12 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     return (
-        <AuthContext.Provider
-            value={{
-                // ── Auth ──────────────────────────
-                user,
-                setUser,
-                isAuth,
-                loading,
-                fetchUser,
-                logOutUser,
-                logOutAllDevices,
-                // ── Sessions ─────────────────────
-                sessions,
-                sessionsLoading,
-                revokingId,
-                fetchSessions,
-                revokeSession,
-            }}
-        >
+        <AuthContext.Provider value={{
+            user, setUser, isAuth, loading,
+            fetchUser, logOutUser, logOutAllDevices,
+            sessions, sessionsLoading, revokingId,
+            fetchSessions, revokeSession,
+        }}>
             {children}
         </AuthContext.Provider>
     );

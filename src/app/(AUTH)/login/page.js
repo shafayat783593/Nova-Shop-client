@@ -4,10 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation'; // ✅ useSearchParams add
 import api from '../../lib/api';
 import PrimaryButton from '../../components/global/PrimaryButton';
 import { useAuth } from '@/app/context/AuthContext';
@@ -33,18 +33,18 @@ const sliderImages = [
   }
 ];
 
-;
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const router = useRouter();
-  const { fetchUser } = useAuth()
+  const searchParams = useSearchParams(); // ✅ এখন সঠিক জায়গায়
+  const { fetchUser } = useAuth();
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % sliderImages.length);
-    }, 5000); // ৫ সেকেন্ড পর পর পাল্টাবে
+    }, 5000);
     return () => clearInterval(timer);
   }, []);
 
@@ -52,29 +52,42 @@ const LoginPage = () => {
     try {
       const response = await api.post('/api/auth/login', data);
 
-      // If 2FA is enabled, redirect to verify OTP
       if (response?.data?.twoFactorRequired) {
         localStorage.setItem('temp_email', data.email);
         toast.success(response.data.message || 'OTP sent to your email!');
         router.push('/verify-otp');
       } else {
-        // Direct login → go to home page
-        // You can also store tokens if needed
         localStorage.setItem('accessToken', response.data.accessToken);
         localStorage.setItem('refreshToken', response.data.refreshToken);
-        await fetchUser();
+
+        const loggedInUser = await fetchUser();
         toast.success(response.data.message || 'Login successful!');
-        router.push('/'); // Home page
+
+        const returnUrl = searchParams.get('returnUrl');
+
+        if (returnUrl) {
+          // ✅ returnUrl থাকলে সেখানে যাও
+          router.push(returnUrl);
+        } else {
+          // ✅ role অনুযায়ী default redirect
+          const roleRedirects = {
+            admin: '/admin',
+            vendor: '/vendor',
+            deliveryboy: '/deliveryboy',
+            customer: '/customer',
+          };
+
+          const role = loggedInUser?.role;
+          const destination = roleRedirects[role] || '/';
+          router.push(destination);
+        }
       }
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Invalid credentials');
     }
   };
-
   return (
     <div className="min-h-screen w-full flex bg-bg transition-colors duration-500 overflow-hidden">
-
-      {/* --- Left Side: Form --- */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 md:p-16 bg-card z-10 shadow-2xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -87,7 +100,6 @@ const LoginPage = () => {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Email */}
             <div className="space-y-1">
               <label className="text-sm font-bold text-heading ml-1">Email Address</label>
               <div className="relative group">
@@ -98,10 +110,10 @@ const LoginPage = () => {
                   placeholder="name@example.com"
                   className="w-full pl-12 pr-4 py-4 bg-bg border border-accent/20 rounded-2xl outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all text-heading"
                 />
+                {errors.email && <p className="text-danger text-xs mt-1 ml-1">{errors.email.message}</p>}
               </div>
             </div>
 
-            {/* Password */}
             <div className="space-y-1">
               <div className="flex justify-between items-center ml-1">
                 <label className="text-sm font-bold text-heading">Password</label>
@@ -118,6 +130,7 @@ const LoginPage = () => {
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-body hover:text-primary">
                   {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
                 </button>
+                {errors.password && <p className="text-danger text-xs mt-1 ml-1">{errors.password.message}</p>}
               </div>
             </div>
 
@@ -134,9 +147,7 @@ const LoginPage = () => {
         </motion.div>
       </div>
 
-      {/* --- Right Side: Ultra Smooth Carousel --- */}
       <div className="hidden lg:flex lg:w-1/2 bg-[#0a0a0a] relative items-center justify-center overflow-hidden">
-        {/* Background Crossfade Animation */}
         <AnimatePresence mode='popLayout'>
           <motion.div
             key={currentSlide}
@@ -146,16 +157,10 @@ const LoginPage = () => {
             transition={{ duration: 1.5, ease: "easeInOut" }}
             className="absolute inset-0 z-0"
           >
-            <Image
-              src={sliderImages[currentSlide].src}
-              alt="bg"
-              fill
-              className="object-cover blur-sm"
-            />
+            <Image src={sliderImages[currentSlide].src} alt="bg" fill className="object-cover blur-sm" />
           </motion.div>
         </AnimatePresence>
 
-        {/* Foreground Content */}
         <div className="relative z-10 w-full max-w-lg text-center px-10">
           <AnimatePresence mode="wait">
             <motion.div
@@ -166,49 +171,26 @@ const LoginPage = () => {
               transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
             >
               <div className="relative w-full h-[380px] mb-8 drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-                <Image
-                  src={sliderImages[currentSlide].src}
-                  alt="Slider"
-                  fill
-                  className="object-contain rounded-[2rem]"
-                  priority
-                />
+                <Image src={sliderImages[currentSlide].src} alt="Slider" fill className="object-contain rounded-[2rem]" priority />
               </div>
-
-              <motion.h2
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-4xl font-display font-black text-white mb-3"
-              >
+              <motion.h2 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-4xl font-display font-black text-white mb-3">
                 {sliderImages[currentSlide].title}
               </motion.h2>
-
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
-                className="text-white/70 text-lg leading-relaxed"
-              >
+              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="text-white/70 text-lg leading-relaxed">
                 {sliderImages[currentSlide].desc}
               </motion.p>
             </motion.div>
           </AnimatePresence>
 
-          {/* Indicators */}
           <div className="flex justify-center gap-3 mt-10">
             {sliderImages.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentSlide(index)}
-                className={`h-1.5 transition-all duration-500 rounded-full ${currentSlide === index ? "w-10 bg-primary" : "w-4 bg-white/20 hover:bg-white/40"
-                  }`}
+              <button key={index} onClick={() => setCurrentSlide(index)}
+                className={`h-1.5 transition-all duration-500 rounded-full ${currentSlide === index ? "w-10 bg-primary" : "w-4 bg-white/20 hover:bg-white/40"}`}
               />
             ))}
           </div>
         </div>
 
-        {/* Decorative Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
       </div>
     </div>
