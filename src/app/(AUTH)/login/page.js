@@ -49,16 +49,17 @@ const LoginPage = () => {
   }, []);
 
   const onSubmit = async (data) => {
+    console.log("Login Data:", data); // ✅ Debugging line
     try {
       const response = await api.post('/api/auth/login', data);
-
+http//localho
       if (response?.data?.twoFactorRequired) {
         localStorage.setItem('temp_email', data.email);
         toast.success(response.data.message || 'OTP sent to your email!');
         router.push('/verify-otp');
       } else {
-        localStorage.setItem('accessToken', response.data.accessToken);
-        localStorage.setItem('refreshToken', response.data.refreshToken);
+        // localStorage.setItem('accessToken', response.data.accessToken);
+        // localStorage.setItem('refreshToken', response.data.refreshToken);
 
         const loggedInUser = await fetchUser();
         toast.success(response.data.message || 'Login successful!');
@@ -96,7 +97,7 @@ const LoginPage = () => {
         >
           <div className="mb-10 text-center lg:text-left">
             <h1 className="text-4xl font-display font-black text-heading tracking-tight">Welcome Back</h1>
-            <p className="text-body mt-2">Access your <span className="text-primary font-bold">TerraShop</span> account.</p>
+            <p className="text-body mt-2">Access your <span className="text-primary font-bold">NovaShop</span> account.</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">

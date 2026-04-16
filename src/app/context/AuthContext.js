@@ -19,6 +19,7 @@ export const AuthProvider = ({ children }) => {
         try {
             const { data } = await api.get("/api/auth/me");
             setUser(data.user);
+            console.log("Fetched User:", data.user); // ✅ Debugging line
             setIsAuth(true);
             return data.user;
         } catch {

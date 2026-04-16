@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from "react";
    CONSTANTS (FIXED)
 ===================================================== */
 
-const MAX_FILE_SIZE_MB = 4;
+const MAX_FILE_SIZE_MB = 10;
 
 
 const ALLOWED_TYPES = [
@@ -54,7 +54,7 @@ const useCloudinaryUpload = () => {
     ============================ */
 
     const uploadSingle = useCallback(async (file, options = {}) => {
-        const { folder = "profiles", onProgress } = options;
+        const { folder, onProgress } = options;
 
         setUploading(true);
         setError(null);

@@ -4,8 +4,9 @@ import React, { useEffect } from "react";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
-import { DASHBOARD_MENU, normalizeRole } from '@/config/dashboardConfig';
+import { DASHBOARD_MENU, normalizeRole } from '@/app/(Dashboard)/components/config/dashboardConfig';
 import { useAuth } from '@/app/context/AuthContext';
+import Loading from "@/app/components/global/Loading";
 
 export default function DashboardSidebar({
     isSidebarOpen,
@@ -15,17 +16,9 @@ export default function DashboardSidebar({
 }) {
     const pathname = usePathname();
     const { user, loading, logOutUser } = useAuth();
-
+console.log("Sidebar User:", user); // ✅ Debugging line
     // ✅ loading শেষ না হওয়া পর্যন্ত কিছু দেখাবে না
-    if (loading) {
-        return (
-            <aside className="fixed lg:sticky top-0 left-0 z-50 h-screen w-[85px] 
-                bg-card border-r border-accent-10 flex items-center justify-center">
-                <div className="w-5 h-5 border-2 border-primary border-t-transparent 
-                    rounded-full animate-spin" />
-            </aside>
-        );
-    }
+    if (loading) return <Loading/>;
 
     // ✅ loading শেষে role নাও — default দিও না
     const role = normalizeRole(user?.role);

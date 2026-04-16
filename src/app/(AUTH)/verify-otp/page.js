@@ -40,6 +40,31 @@ const VerifyOTPPage = () => {
     const inputRefs = useRef([]);
     const router = useRouter();
 
+    const handlePaste = (e) => {
+        e.preventDefault();
+
+        const pasteData = e.clipboardData.getData("text").trim();
+
+        // শুধু number allow
+        if (!/^\d+$/.test(pasteData)) return;
+
+        const pasteArray = pasteData.slice(0, 6).split("");
+
+        const newOtp = [...otp];
+
+        pasteArray.forEach((num, i) => {
+            newOtp[i] = num;
+        });
+
+        setOtp(newOtp);
+
+        // last filled input এ focus
+        const lastIndex = pasteArray.length - 1;
+        if (inputRefs.current[lastIndex]) {
+            inputRefs.current[lastIndex].focus();
+        }
+    };
+
     // ১. লোকাল স্টোরেজ থেকে ইমেইল রিড করা
     useEffect(() => {
         const storedEmail = localStorage.getItem('temp_email');
@@ -94,7 +119,7 @@ const VerifyOTPPage = () => {
             await api.post('/api/auth/verify-otp', { email, otp: otpString });
             toast.success("Identity verified successfully!");
             localStorage.removeItem('temp_email');
-            router.push('/dashboard');
+            router.push('/');
         } catch (error) {
             toast.error(error?.response?.data?.message || "Invalid OTP code");
         } finally {
@@ -223,6 +248,7 @@ const VerifyOTPPage = () => {
                                     value={digit}
                                     onChange={(e) => handleChange(index, e.target.value)}
                                     onKeyDown={(e) => handleKeyDown(index, e)}
+                                    onPaste={handlePaste} // 🔥 ADD THIS
                                     className="w-full h-14 md:h-16 text-center text-2xl font-black bg-bg border-2 border-accent/10 rounded-2xl outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all text-heading"
                                 />
                             ))}

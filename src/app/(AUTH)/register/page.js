@@ -165,7 +165,7 @@ const RegisterPage = () => {
                         <h1 className="text-4xl font-display font-black text-heading tracking-tight">
                             Create Account
                         </h1>
-                        <p className="text-body mt-2">Enter your details to get started with <span className="text-primary font-bold">TerraShop</span></p>
+                        <p className="text-body mt-2">Enter your details to get started with <span className="text-primary font-bold">NovaShop</span></p>
                     </div>
 
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">

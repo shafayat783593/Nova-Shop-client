@@ -37,7 +37,7 @@ const ACCOUNT_LINKS = [
   { icon: Heart, label: "Wishlist", href: "/account/wishlist", badge: "wishlist" },
   { icon: MapPin, label: "Addresses", href: "/account/address", badge: null },
   { icon: CreditCard, label: "Payment Methods", href: "/account/payment", badge: null },
-  { icon: Settings, label: "Settings", href: "/account/settings", badge: null },
+  // { icon: Settings, label: "Settings", href: "/account/settings", badge: null },
 ];
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -402,8 +402,6 @@ export default function Navbar() {
       
         <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=Nunito:wght@400;500;600;700;800&display=swap');
-        .nb-font         { font-family: 'Nunito', sans-serif; }
-        .nb-font-display { font-family: 'Syne',   sans-serif; }
         .nb-link { position: relative; text-decoration: none; }
         .nb-link::after {
           content: ''; position: absolute; bottom: -2px; left: 50%;
@@ -443,7 +441,7 @@ export default function Navbar() {
               🌿
             </div>
             <span className="text-xl font-black tracking-tight hidden sm:block nb-font-display">
-              <span className="text-heading">Terra</span>
+              <span className="text-heading">Nova</span>
               <span className="text-accent">Shop</span>
             </span>
           </Link>
