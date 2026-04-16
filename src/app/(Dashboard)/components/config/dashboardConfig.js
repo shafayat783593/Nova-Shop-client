@@ -10,12 +10,7 @@ export const DASHBOARD_MENU = {
         { name: "Manage Products", path: "/admin/manage-products", icon: ScanBarcode },
         { name: "Settings", path: "/admin/settings", icon: Settings },
     ],
-    vendor: [
-        { name: "Dashboard", path: "/vendor", icon: Home },
-        { name: "Shop", path: "/vendor/shop-info", icon: Box },
-        { name: "Orders", path: "/vendor/orders", icon: ShoppingBag },
-        { name: "Wallet", path: "/vendor/wallet", icon: Wallet },
-    ],
+ 
     customer: [
         { name: "My Dashboard", path: "/customer", icon: Home },
         { name: "My Orders", path: "/customer/orders", icon: ShoppingBag },
