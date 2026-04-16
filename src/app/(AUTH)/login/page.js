@@ -58,8 +58,7 @@ http//localho
         toast.success(response.data.message || 'OTP sent to your email!');
         router.push('/verify-otp');
       } else {
-        // localStorage.setItem('accessToken', response.data.accessToken);
-        // localStorage.setItem('refreshToken', response.data.refreshToken);
+  
 
         const loggedInUser = await fetchUser();
         toast.success(response.data.message || 'Login successful!');

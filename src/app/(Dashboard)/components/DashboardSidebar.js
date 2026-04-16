@@ -56,7 +56,7 @@ export default function DashboardSidebar({
                         {isOpen ? (
                             <div className="text-2xl font-display font-black text-primary 
                                 dark:text-accent truncate">
-                                TerraShop
+                              NovaShop
                             </div>
                         ) : (
                             <div className="text-2xl font-black text-primary mx-auto">T.</div>
