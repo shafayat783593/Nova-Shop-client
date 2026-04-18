@@ -4,6 +4,7 @@ import DashboardSidebar from './components/DashboardSidebar';
 import DashboardHeader from './components/DashboardHeader';
 import { useRouter, usePathname } from 'next/navigation'; // ✅ useRouter
 import { useAuth } from '../context/AuthContext';
+import Loading from '../components/global/Loading';
 
 export default function DashboardLayout({ children }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -14,26 +15,20 @@ export default function DashboardLayout({ children }) {
     const router = useRouter();
 
     useEffect(() => {
-        // ✅ loading শেষ হলে তারপর check করো
-        if (!loading && !isAuth) {
+        if (!loading && !isAuth && pathname !== '/login') {
             router.replace(`/login?returnUrl=${encodeURIComponent(pathname)}`);
         }
     }, [loading, isAuth, pathname, router]);
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-bg">
-                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            </div>
-        );
-    }
+    if (loading) return <Loading/>;
 
     // ✅ isAuth না হলে কিছু render করবে না (useEffect redirect করবে)
     if (!isAuth) return null;
 
     return (
-        <div className="flex w-full min-h-screen bg-bg">
+        <div key={pathname} className="flex w-full min-h-screen bg-bg">
             <DashboardSidebar
+                key={`sidebar-${pathname}`}
                 isSidebarOpen={isSidebarOpen}
                 setIsSidebarOpen={setIsSidebarOpen}
                 isExpanded={isExpanded}
@@ -41,6 +36,7 @@ export default function DashboardLayout({ children }) {
             />
             <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
                 <DashboardHeader
+                    key={pathname}
                     isSidebarOpen={isSidebarOpen}
                     setIsSidebarOpen={setIsSidebarOpen}
                 />

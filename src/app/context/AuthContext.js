@@ -1,12 +1,14 @@
 'use client';
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
-// ❌ useRouter import করবে না
+
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import api from "../lib/api";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    // ❌ const router = useRouter();  -- এটা বাদ
+    const pathname = usePathname();
+    const hasInitialized = useRef(false);
 
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -15,11 +17,15 @@ export const AuthProvider = ({ children }) => {
     const [sessionsLoading, setSessionsLoading] = useState(false);
     const [revokingId, setRevokingId] = useState(null);
 
-    const fetchUser = async () => {
+    const fetchUser = useCallback(async ({ withLoading = false } = {}) => {
+        if (withLoading) {
+            setLoading(true);
+        }
+
+        
         try {
             const { data } = await api.get("/api/auth/me");
             setUser(data.user);
-            console.log("Fetched User:", data.user); // ✅ Debugging line
             setIsAuth(true);
             return data.user;
         } catch {
@@ -29,7 +35,7 @@ export const AuthProvider = ({ children }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     const fetchSessions = useCallback(async () => {
         setSessionsLoading(true);
@@ -43,19 +49,18 @@ export const AuthProvider = ({ children }) => {
         }
     }, []);
 
-    // ✅ logout এ শুধু state clear করো, navigate করবে না
     const logOutUser = async () => {
         try {
-            // ✅ আগে current session fetch করো
             const { data } = await api.get("/api/settings/sessions");
-            const currentSession = data.sessions?.find(s => s.isCurrent);
+            const currentSession = data.sessions?.find((session) => session.isCurrent);
 
             if (currentSession?.sessionId) {
                 await api.delete(`/api/settings/sessions/${currentSession.sessionId}`);
             }
-        } catch (e) {
-            console.error("Logout error:", e);
+        } catch (error) {
+            console.error("Logout error:", error);
         }
+
         setUser(null);
         setIsAuth(false);
         setSessions([]);
@@ -65,12 +70,12 @@ export const AuthProvider = ({ children }) => {
         setRevokingId(sessionId);
         try {
             await api.delete(`/api/settings/sessions/${sessionId}`);
-            setSessions(prev => prev.filter(s => s.sessionId !== sessionId));
+            setSessions((prev) => prev.filter((session) => session.sessionId !== sessionId));
             return { success: true };
-        } catch (e) {
+        } catch (error) {
             return {
                 success: false,
-                message: e?.response?.data?.message || "Failed to revoke session"
+                message: error?.response?.data?.message || "Failed to revoke session",
             };
         } finally {
             setRevokingId(null);
@@ -84,25 +89,36 @@ export const AuthProvider = ({ children }) => {
             setIsAuth(false);
             setSessions([]);
             return { success: true };
-        } catch (e) {
+        } catch (error) {
             return {
                 success: false,
-                message: e?.response?.data?.message || "Failed to logout"
+                message: error?.response?.data?.message || "Failed to logout",
             };
         }
     };
 
     useEffect(() => {
-        fetchUser();
-    }, []);
+        fetchUser({ withLoading: !hasInitialized.current });
+        hasInitialized.current = true;
+    }, [fetchUser, pathname]);
 
     return (
-        <AuthContext.Provider value={{
-            user, setUser, isAuth, loading,
-            fetchUser, logOutUser, logOutAllDevices,
-            sessions, sessionsLoading, revokingId,
-            fetchSessions, revokeSession,
-        }}>
+        <AuthContext.Provider
+            value={{
+                user,
+                setUser,
+                isAuth,
+                loading,
+                fetchUser,
+                logOutUser,
+                logOutAllDevices,
+                sessions,
+                sessionsLoading,
+                revokingId,
+                fetchSessions,
+                revokeSession,
+            }}
+        >
             {children}
         </AuthContext.Provider>
     );

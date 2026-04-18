@@ -12,9 +12,13 @@ export default function LayoutWrapper({ children }) {
         pathname.startsWith(path)
     );
 
+    if (hideNavFooter) {
+        return <>{children}</>;
+    }
+
     return (
         <>
-            {!hideNavFooter && <Navbar />}
+            <Navbar key={pathname} />
 
       
             <AnimatePresence mode="wait">
@@ -29,7 +33,7 @@ export default function LayoutWrapper({ children }) {
                 </motion.main>
             </AnimatePresence>
 
-            {!hideNavFooter && <Footer />}
+            <Footer />
         </>
     );
 }

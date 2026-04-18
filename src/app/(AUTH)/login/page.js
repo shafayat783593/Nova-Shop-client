@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter, useSearchParams } from 'next/navigation'; // ✅ useSearchParams add
+import { useRouter, useSearchParams } from 'next/navigation';
 import api from '../../lib/api';
 import PrimaryButton from '../../components/global/PrimaryButton';
 import { useAuth } from '@/app/context/AuthContext';
@@ -37,7 +37,7 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const router = useRouter();
-  const searchParams = useSearchParams(); // ✅ এখন সঠিক জায়গায়
+  const searchParams = useSearchParams();
   const { fetchUser } = useAuth();
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
 
@@ -49,43 +49,47 @@ const LoginPage = () => {
   }, []);
 
   const onSubmit = async (data) => {
-    console.log("Login Data:", data); // ✅ Debugging line
     try {
       const response = await api.post('/api/auth/login', data);
-http//localho
+
       if (response?.data?.twoFactorRequired) {
         localStorage.setItem('temp_email', data.email);
         toast.success(response.data.message || 'OTP sent to your email!');
         router.push('/verify-otp');
-      } else {
-  
-
-        const loggedInUser = await fetchUser();
-        toast.success(response.data.message || 'Login successful!');
-
-        const returnUrl = searchParams.get('returnUrl');
-
-        if (returnUrl) {
-          // ✅ returnUrl থাকলে সেখানে যাও
-          router.push(returnUrl);
-        } else {
-          // ✅ role অনুযায়ী default redirect
-          const roleRedirects = {
-            admin: '/admin',
-            vendor: '/vendor',
-            deliveryboy: '/deliveryboy',
-            customer: '/customer',
-          };
-
-          const role = loggedInUser?.role;
-          const destination = roleRedirects[role] || '/';
-          router.push(destination);
-        }
+        return;
       }
+
+      // ✅ আগে fetchUser() await করো — তারপর role দিয়ে redirect
+      const loggedInUser = await fetchUser();
+      toast.success(response.data.message || 'Login successful!');
+
+      const returnUrl = searchParams.get('returnUrl') || searchParams.get('from');
+      if (returnUrl) {
+        router.push(decodeURIComponent(returnUrl));
+        return;
+      }
+
+      const roleRedirects = {
+        admin: '/admin',
+        vendor: '/vendor',
+        deliveryboy: '/deliveryboy',
+        customer: '/customer',
+      };
+
+      const role = loggedInUser?.role;
+      const destination = roleRedirects[role] || '/';
+      router.push(destination);
+
     } catch (error) {
+      // ✅ MAX_SESSIONS_REACHED হলে আলাদা message
+      if (error?.response?.data?.errorCode === 'MAX_SESSIONS_REACHED') {
+        toast.error('Maximum devices reached. Please logout from another device first.');
+        return;
+      }
       toast.error(error?.response?.data?.message || 'Invalid credentials');
     }
   };
+
   return (
     <div className="min-h-screen w-full flex bg-bg transition-colors duration-500 overflow-hidden">
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 md:p-16 bg-card z-10 shadow-2xl">

@@ -1,43 +1,13 @@
 'use client';
 
+import { FiLoader } from "react-icons/fi";
+
 const Loading = () => {
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
-            <div className="loader">
-                <style jsx>{`
-          .loader {
-            position: relative;
-            width: 2.5em;
-            height: 2.5em;
-            transform: rotate(165deg);
-          }
-          .loader:before, .loader:after {
-            content: "";
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            display: block;
-            width: 0.5em;
-            height: 0.5em;
-            border-radius: 0.25em;
-            transform: translate(-50%, -50%);
-          }
-          .loader:before { animation: before8 2s infinite; }
-          .loader:after { animation: after6 2s infinite; }
-
-          @keyframes before8 {
-            0%, 100% { width: 0.5em; box-shadow: 1em -0.5em rgba(225, 20, 98, 0.75), -1em 0.5em rgba(111, 202, 220, 0.75); }
-            35% { width: 2.5em; box-shadow: 0 -0.5em rgba(225, 20, 98, 0.75), 0 0.5em rgba(111, 202, 220, 0.75); }
-            70% { width: 0.5em; box-shadow: -1em -0.5em rgba(225, 20, 98, 0.75), 1em 0.5em rgba(111, 202, 220, 0.75); }
-          }
-          @keyframes after6 {
-            0%, 100% { height: 0.5em; box-shadow: 0.5em 1em rgba(61, 184, 143, 0.75), -0.5em -1em rgba(233, 169, 32, 0.75); }
-            35% { height: 2.5em; box-shadow: 0.5em 0 rgba(61, 184, 143, 0.75), -0.5em 0 rgba(233, 169, 32, 0.75); }
-            70% { height: 0.5em; box-shadow: 0.5em -1em rgba(61, 184, 143, 0.75), -0.5em 1em rgba(233, 169, 32, 0.75); }
-          }
-        `}</style>
-            </div>
-        </div>
+      <div className="flex flex-col items-center justify-center py-24 gap-4 text-body">
+        <FiLoader size={36} className="animate-spin text-[color:var(--color-primary)]" />
+        <p className="text-sm font-semibold">Loading products…</p>
+      </div>
     );
 };
 

@@ -9,6 +9,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import api from '@/app/lib/api';
 import PrimaryButton from '@/app/components/global/PrimaryButton';
+import { useAuth } from '@/app/context/AuthContext';
 
 const sliderImages = [
     {
@@ -39,6 +40,7 @@ const VerifyOTPPage = () => {
 
     const inputRefs = useRef([]);
     const router = useRouter();
+    const { fetchUser } = useAuth();
 
     const handlePaste = (e) => {
         e.preventDefault();
@@ -117,9 +119,16 @@ const VerifyOTPPage = () => {
         setIsVerifying(true);
         try {
             await api.post('/api/auth/verify-otp', { email, otp: otpString });
+            const loggedInUser = await fetchUser();
             toast.success("Identity verified successfully!");
             localStorage.removeItem('temp_email');
-            router.push('/');
+            const roleRedirects = {
+                admin: '/admin',
+                vendor: '/vendor',
+                deliveryboy: '/deliveryboy',
+                customer: '/customer',
+            };
+            router.push(roleRedirects[loggedInUser?.role] || '/');
         } catch (error) {
             toast.error(error?.response?.data?.message || "Invalid OTP code");
         } finally {

@@ -39,7 +39,7 @@ export async function middleware(request) {
     if (!accessToken) {
         if (isProtected) {
             const url = new URL("/login", request.url);
-            url.searchParams.set("from", pathname);
+            url.searchParams.set("returnUrl", pathname);
             return NextResponse.redirect(url);
         }
         return NextResponse.next();
@@ -51,8 +51,12 @@ export async function middleware(request) {
     const payload = await verifyToken(accessToken);
 
     // Expire → api.js refresh করবে
-    if (!payload) return NextResponse.next();
-
+    if (!payload) {
+        // token invalid → clear cookie + login
+        const res = NextResponse.redirect(new URL("/login", request.url));
+        res.cookies.delete("accessToken");
+        return res;
+    }
     const role = payload.role?.toLowerCase();
     const config = ROLE_CONFIG[role];
 

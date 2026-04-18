@@ -1,9 +1,13 @@
 "use client";
 import { motion } from "framer-motion";
+import { usePathname } from "next/navigation";
 
 export default function SmoothProvider({ children }) {
+    const pathname = usePathname();
+
     return (
         <motion.div
+            key={pathname}
             initial={false}
             animate={{
                 // Changed from --color-bg to --bg

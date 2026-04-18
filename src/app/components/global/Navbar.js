@@ -153,7 +153,7 @@ function MegaMenu({ items, show }) {
 function ProfileDropdown({ show, onClose, user, profileData, badgeCounts, onLogout, isLoading }) {
   const displayName = profileData?.name || user?.name || user?.email || "User";
   const email = profileData?.email || user?.email || "";
-  const avatarSrc = profileData?.avatar || user?.avatar || null;
+  const avatarSrc = user?.avatar || profileData?.avatar || null;
   const dashHref = getDashboardHref(user);
 
   return (
@@ -391,7 +391,7 @@ export default function Navbar() {
   };
 
   const displayName = profileData?.name || user?.name || user?.email || "";
-  const avatarSrc = profileData?.avatar || user?.avatar || null;
+  const avatarSrc = user?.avatar || profileData?.avatar || null;
   const dashHref = getDashboardHref(user);
 
   return (

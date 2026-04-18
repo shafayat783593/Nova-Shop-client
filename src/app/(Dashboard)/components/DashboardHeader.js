@@ -5,31 +5,26 @@ import {
     Menu,
     Search,
     Bell,
-    HelpCircle,
     User,
     LogOut,
     Settings,
-    X,
-    FileText,
-    Shield,
 } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import Link from 'next/link';
 
 export default function DashboardHeader({ isSidebarOpen, setIsSidebarOpen }) {
-    // মেনু ওপেন/ক্লোজ স্টেট
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
     const { user, logOutUser } = useAuth();
 
-    // বাইরে ক্লিক করলে মেনু ক্লোজ করার লজিক
     useEffect(() => {
         const handleClickOutside = (e) => {
             if (!e.target.closest('.user-menu')) setIsUserMenuOpen(false);
             if (!e.target.closest('.notification-menu')) setIsNotificationsOpen(false);
         };
+
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
@@ -37,8 +32,6 @@ export default function DashboardHeader({ isSidebarOpen, setIsSidebarOpen }) {
     return (
         <header className="sticky top-0 z-40 bg-card border-b border-accent-10 px-4 py-3 lg:px-8 transition-colors duration-500">
             <div className="flex justify-between items-center gap-4">
-
-                {/* --- বাম পাশ: মোবাইল মেনু বাটন এবং সার্চবার --- */}
                 <div className="flex items-center gap-3 flex-1">
                     <button
                         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -62,10 +55,7 @@ export default function DashboardHeader({ isSidebarOpen, setIsSidebarOpen }) {
                     </div>
                 </div>
 
-                {/* --- ডান পাশ: নোটিফিকেশন এবং প্রোফাইল --- */}
                 <div className="flex items-center gap-2 md:gap-4">
-
-                    {/* নোটিফিকেশন আইকন (সিম্পল ডেমো) */}
                     <div className="relative notification-menu">
                         <button
                             onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
@@ -87,7 +77,6 @@ export default function DashboardHeader({ isSidebarOpen, setIsSidebarOpen }) {
                         )}
                     </div>
 
-                    {/* ইউজার প্রোফাইল ড্রপডাউন */}
                     <div className="relative user-menu ml-2">
                         <button
                             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -126,7 +115,6 @@ export default function DashboardHeader({ isSidebarOpen, setIsSidebarOpen }) {
                             </div>
                         )}
                     </div>
-
                 </div>
             </div>
         </header>

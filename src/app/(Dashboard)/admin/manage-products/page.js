@@ -9,6 +9,7 @@ import {
     FiCheckCircle, FiX, FiPackage, FiChevronLeft,
     FiChevronRight, FiRefreshCw, FiStar,
 } from "react-icons/fi";
+import Loading from "@/app/components/global/Loading";
 
 export default function ManageProductsPage() {
     const router = useRouter();
@@ -193,10 +194,7 @@ export default function ManageProductsPage() {
                 {/* Table */}
                 <div className="bg-card rounded-2xl border border-accent-10 overflow-hidden shadow-sm">
                     {loading ? (
-                        <div className="flex flex-col items-center justify-center py-24 gap-4 text-body">
-                            <FiLoader size={36} className="animate-spin text-[color:var(--color-primary)]" />
-                            <p className="text-sm font-semibold">Loading products…</p>
-                        </div>
+                       <Loading/>
                     ) : products.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-24 gap-4 text-body">
                             <FiPackage size={44} className="opacity-30" />
