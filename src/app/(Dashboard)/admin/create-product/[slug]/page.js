@@ -20,8 +20,8 @@ const EMPTY_VARIANT = { size: "", color: "", stock: "", price: "", sku: "" };
 
 export default function EditProductPage() {
     const router = useRouter();
-    const { id } = useParams();
-
+    const { slug } = useParams();
+console.log("Product slug from URL:", slug);
     const [form, setForm] = useState(null);
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
@@ -37,12 +37,13 @@ export default function EditProductPage() {
 
     // ── Fetch Product ─────────────────────────────────────────────────────
     useEffect(() => {
-        if (!id) return;
+        if (!slug) return;
 
         const fetchProduct = async () => {
             try {
-                const { data } = await api.get(`/api/products/${id}`);
+                const { data } = await api.get(`/api/products/${slug}`);
                 const p = data.data;
+                console.log("Fetched product:", p);
 
                 setForm({
                     name: p.name || "",
@@ -53,6 +54,7 @@ export default function EditProductPage() {
                     discountedPrice: p.discountedPrice ?? "",
                     images: p.images || [],
                     gallery: p.gallery || [],
+                    slug: p.slug || "",
                     hasVariants: Boolean(p.hasVariants) || (p.variants?.length > 0),
                     variants: p.variants?.length
                         ? p.variants.map((v) => ({
@@ -75,7 +77,7 @@ export default function EditProductPage() {
         };
 
         fetchProduct();
-    }, [id]);
+    }, [slug]);
 
     // ── Helpers ───────────────────────────────────────────────────────────
     const set = (name, val) => {
@@ -168,6 +170,7 @@ export default function EditProductPage() {
             gallery: form.gallery,
             hasVariants: form.hasVariants,
             variants: form.hasVariants
+            
                 ? form.variants.map((v) => ({
                     size: v.size?.trim() || undefined,
                     color: v.color?.trim() || undefined,
@@ -255,7 +258,7 @@ export default function EditProductPage() {
                         <h1 className="font-display text-3xl sm:text-4xl font-bold text-heading tracking-tight">
                             Edit Product
                         </h1>
-                        <p className="text-body text-sm mt-1 font-mono truncate max-w-xs">ID: {id}</p>
+                        <p className="text-body text-sm mt-1 font-mono truncate max-w-xs">ID: {form.slug}</p>
                     </div>
                 </div>
 

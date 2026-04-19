@@ -306,7 +306,7 @@ export default function ManageProductsPage() {
                                             <td className="px-5 py-4">
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button
-                                                        onClick={() => router.push(`/admin/create-product/${product._id}`)}
+                                                        onClick={() => router.push(`/admin/create-product/${product.slug}`)}
                                                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-accent-10 text-body hover:bg-[color:var(--color-primary)] hover:text-white hover:border-[color:var(--color-primary)] transition-all"
                                                     >
                                                         <FiEdit2 size={13} /> Edit
