@@ -1,9 +1,10 @@
 import React from 'react'
+import HeroSection from './Home/Herosection'
 
 function page() {
   return (
     <div>
-      loremdsflskjfasjfalsfjoasfjsofjsof fjosfj sofisjfosfjsofjsdofjsofjsoi jf
+      <HeroSection/>
     </div>
   )
 }
