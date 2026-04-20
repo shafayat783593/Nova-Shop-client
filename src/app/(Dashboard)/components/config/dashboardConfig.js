@@ -8,7 +8,7 @@ export const DASHBOARD_MENU = {
         { name: "Overview", path: "/admin", icon: Home },
         { name: "Create Product", path: "/admin/create-product", icon: Users },
         { name: "Manage Products", path: "/admin/manage-products", icon: ScanBarcode },
-        { name: "Manage Banners", path: "/admin/homeAdmin/createbanner/managebanner", icon: ScanBarcode },
+        { name: "Manage Banners", path: "/admin/homeAdmin/managebanner", icon: ScanBarcode },
 
       
     ],

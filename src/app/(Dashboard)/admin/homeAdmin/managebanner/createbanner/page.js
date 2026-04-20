@@ -45,7 +45,7 @@ const router = useRouter();
             showToast("success", "Banner created successfully!");
 
             setFormData({ title: '', description: '', link: '', imageUrl: '' });
-            router.push('/admin/homeAdmin/createbanner/managebanner');
+            router.push('/admin/homeAdmin/managebanner');
             setProgress(0);
         } catch (err) {
             showToast("error", err?.response?.data?.message || "Failed to create banner");

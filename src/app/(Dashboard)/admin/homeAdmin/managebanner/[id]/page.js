@@ -52,7 +52,7 @@ export default function EditBannerPage() {
             await api.put(`/api/banners/${id}`, formData);
             showToast("success", "Banner updated successfully!");
 
-            router.push('/admin/homeAdmin/createbanner/managebanner');
+            router.push('/admin/homeAdmin/managebanner');
         } catch (err) {
             showToast("error", err?.response?.data?.message || "Failed to update banner");
         }
