@@ -88,7 +88,7 @@ export default function ManagePromotions() {
                                     </button>
                                 </td>
                                 <td className="p-4 flex gap-4">
-                                    <button onClick={() => router.push(`/admin/homeAdmin/editpromotion/${p._id}`)} className="text-primary hover:text-accent"><Edit2 size={18} /></button>
+                                    <button onClick={() => router.push(`/admin/homeAdmin/managePromotion/${p._id}`)} className="text-primary hover:text-accent"><Edit2 size={18} /></button>
                                     <button onClick={() => deletePromotion(p._id)} className="text-danger hover:opacity-80"><Trash2 size={18} /></button>
                                 </td>
                             </tr>
