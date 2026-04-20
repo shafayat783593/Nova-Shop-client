@@ -21,7 +21,7 @@ export default function CreatePromotionPage() {
             await api.post('/api/promotions/add', formData);
             showToast("success", "Promotion created successfully!");
             setFormData({ text: '', link: '', isActive: true });
-            setTimeout(() => router.push('/admin/homeAdmin/managepromotion'), 1500);
+            setTimeout(() => router.push('/admin/homeAdmin/managePromotion'), 1500);
         } catch (err) {
             showToast("error", "Failed to create promotion.");
         }
