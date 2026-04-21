@@ -66,14 +66,13 @@ export default function FeaturedCategories() {
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
-
+console.log(categories)
     useEffect(() => {
-        api.get("/products/categories")
+        api.get("/api/products/categories")
             .then((res) => setCategories(res.data.data || []))
             .catch(() => setCategories(["Men", "Women", "Electronics", "Accessories", "Footwear"]))
             .finally(() => setLoading(false));
     }, []);
-
     const skeletons = Array(5).fill(null);
 
     return (

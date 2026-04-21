@@ -132,15 +132,15 @@ export default function TrendingProducts() {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
+console.log(products)
 
     useEffect(() => {
         api
-            .get("/products?limit=8&isFeatured=true&sort=-totalReviews")
+            .get("/api/products?limit=8&isFeatured=true&sort=-totalReviews")
             .then((res) => setProducts(res.data.data || []))
             .catch(() => setProducts([]))
             .finally(() => setLoading(false));
     }, []);
-
     return (
         <section className="py-16 px-4 bg-bg">
             <div className="max-w-6xl mx-auto">
