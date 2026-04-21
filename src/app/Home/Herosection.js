@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '@/app/lib/api'; // Ensure this points to your axios instance
-import Loading from '../components/global/Loading';
+import Loading from '../loading';
 
 export default function HeroSection() {
     const [slides, setSlides] = useState([]);

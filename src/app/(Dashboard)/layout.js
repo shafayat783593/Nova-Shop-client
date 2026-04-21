@@ -4,7 +4,7 @@ import DashboardSidebar from './components/DashboardSidebar';
 import DashboardHeader from './components/DashboardHeader';
 import { useRouter, usePathname } from 'next/navigation'; // ✅ useRouter
 import { useAuth } from '../context/AuthContext';
-import Loading from '../components/global/Loading';
+import Loading from '../loading';
 
 export default function DashboardLayout({ children }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -20,7 +20,7 @@ export default function DashboardLayout({ children }) {
         }
     }, [loading, isAuth, pathname, router]);
 
-    if (loading) return <Loading/>;
+    if (loading) return <Loading/>
 
     // ✅ isAuth না হলে কিছু render করবে না (useEffect redirect করবে)
     if (!isAuth) return null;
