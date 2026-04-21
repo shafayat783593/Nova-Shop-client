@@ -12,6 +12,7 @@ import { useAuth } from "@/app/context/AuthContext";
 import api from "@/app/lib/api";
 import Link from "next/link";
 import Image from "next/image";
+import { PromoTicker } from "./PromoTicker";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Static Config
@@ -338,17 +339,7 @@ export default function Navbar() {
     retry: 1,
   });
 
-  const { data: promoText } = useQuery({
-    queryKey: ["navbar-promo"],
-    queryFn: async () => {
-      return api.get("/api/promotions").then((res) => {
-        return res.data
-      })
-    },
-    staleTime: 1000 * 60 * 30,
-    retry: 1,
-  });
-  console.log(promoText)
+
   // const promoText = promoRaw ? `${promoRaw} · ${promoRaw}` : "🌿 Free shipping on orders $50+";
 
   // Effects
@@ -454,32 +445,11 @@ export default function Navbar() {
 
 
       {/* Promo Ticker */}
-      {/* <div className="bg-primary overflow-hidden h-8 flex items-center nb-font">
+      <div className="bg-primary overflow-hidden h-8 flex items-center nb-font">
 
-        <div className="nb-ticker-wrapper">
-          {promoText?.map((item) => (
-            <div key={item._id} className="mx-6 flex items-center">
-              {item.link ? (
-           
-                <Link
-                  href={item.link}
-                  className="text-accent text-xs font-bold tracking-wide hover:underline cursor-pointer"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {item.text}
-                </Link>
-              ) : (
-              
-                <p className="text-accent text-xs font-bold tracking-wide">
-                  {item.text}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
+        <PromoTicker/>
 
-      </div> */}
+      </div>
 
       {/* Header */}
       <header className={`sticky top-0 z-40 bg-card nb-font transition-all duration-300

@@ -77,7 +77,7 @@ console.log(categories)
 
     return (
         <section className="py-16 px-4 bg-bg">
-            <div className="max-w-6xl mx-auto">
+            <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="flex items-end justify-between mb-10">
                     <div>
