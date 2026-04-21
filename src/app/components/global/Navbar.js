@@ -27,7 +27,7 @@ const NAV_LINKS = [
       { icon: "🪴", name: "Home & Garden", href: "/shop/home", desc: "Living spaces" },
     ],
   },
-  { label: "New Arrivals", href: "/new-arrivals" },
+  { label: "Products", href: "/product" },
   { label: "Deals", href: "/deals" },
   { label: "About", href: "/about" },
 ];

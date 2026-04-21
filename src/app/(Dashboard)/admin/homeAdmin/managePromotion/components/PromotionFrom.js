@@ -1,18 +1,13 @@
 "use client";
 
 // ─── Shared PromotionForm ─────────────────────────────────────────────────────
-// Used by both CreatePromotion and UpdatePromotion pages
-// Props:
-//   defaultValues  – pre-filled values for update (optional)
-//   onSubmit(data) – async handler that calls the API
-//   submitLabel    – button text ("Create" | "Update")
-//   loading        – boolean
+// Updated: scope products / bxgy products use ProductPicker (searchable multi-select)
 
-import { useForm, useFieldArray, Controller } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import {
-    Tag, ShoppingCart, Gift, Truck, Plus, Trash2,
-    CalendarDays, Users, CreditCard, Info
+    Tag, ShoppingCart, Gift, Truck,
 } from "lucide-react";
+import ProductPicker from "./ProductPicker";
 
 const TYPES = [
     { value: "product", label: "Product Discount", icon: Tag, desc: "Apply to specific products or categories" },
@@ -40,7 +35,7 @@ function SectionTitle({ children }) {
 function Field({ label, error, children, hint }) {
     return (
         <div className="space-y-1.5">
-            <label className="text-heading text-sm font-semibold">{label}</label>
+            {label && <label className="text-heading text-sm font-semibold">{label}</label>}
             {children}
             {hint && <p className="text-body text-xs">{hint}</p>}
             {error && <p className="text-[var(--color-danger)] text-xs">{error}</p>}
@@ -51,7 +46,12 @@ function Field({ label, error, children, hint }) {
 const inputClass =
     "w-full px-3.5 py-2.5 text-sm bg-bg border border-accent-10 rounded-xl text-heading placeholder:text-body outline-none focus:border-[var(--color-primary)] transition-colors";
 
-export default function PromotionForm({ defaultValues = {}, onSubmit, submitLabel = "Save", loading = false }) {
+export default function PromotionForm({
+    defaultValues = {},
+    onSubmit,
+    submitLabel = "Save",
+    loading = false,
+}) {
     const {
         register,
         handleSubmit,
@@ -65,9 +65,23 @@ export default function PromotionForm({ defaultValues = {}, onSubmit, submitLabe
             type: "cart",
             discountType: "percent",
             value: "",
-            conditions: { minCartValue: "", userRoles: [], firstOrderOnly: false, paymentMethod: "" },
-            scope: { categories: "", products: "", excludeProducts: "" },
-            bxgy: { buy: "", get: "", productIds: "" },
+            conditions: {
+                minCartValue: "",
+                userRoles: [],
+                firstOrderOnly: false,
+                paymentMethod: "",
+            },
+            // scope.products / excludeProducts are now string[] of ObjectIds
+            scope: {
+                categories: "",
+                products: [],
+                excludeProducts: [],
+            },
+            bxgy: {
+                buy: "",
+                get: "",
+                productIds: [],   // now array of ObjectIds
+            },
             usageLimit: "",
             perUserLimit: "",
             priority: 0,
@@ -83,25 +97,21 @@ export default function PromotionForm({ defaultValues = {}, onSubmit, submitLabe
     const selectedDiscountType = watch("discountType");
 
     const submit = (data) => {
-        // Clean up comma-separated ids into arrays
         const clean = {
             ...data,
             scope: {
+                // categories stays comma-separated string → split
                 categories: data.scope.categories
                     ? data.scope.categories.split(",").map((s) => s.trim()).filter(Boolean)
                     : [],
-                products: data.scope.products
-                    ? data.scope.products.split(",").map((s) => s.trim()).filter(Boolean)
-                    : [],
-                excludeProducts: data.scope.excludeProducts
-                    ? data.scope.excludeProducts.split(",").map((s) => s.trim()).filter(Boolean)
-                    : [],
+                // products & excludeProducts are already arrays from ProductPicker
+                products: data.scope.products || [],
+                excludeProducts: data.scope.excludeProducts || [],
             },
             bxgy: {
-                ...data.bxgy,
-                productIds: data.bxgy.productIds
-                    ? data.bxgy.productIds.split(",").map((s) => s.trim()).filter(Boolean)
-                    : [],
+                buy: data.bxgy.buy !== "" ? Number(data.bxgy.buy) : undefined,
+                get: data.bxgy.get !== "" ? Number(data.bxgy.get) : undefined,
+                productIds: data.bxgy.productIds || [],
             },
             value: data.value !== "" ? Number(data.value) : undefined,
             usageLimit: data.usageLimit !== "" ? Number(data.usageLimit) : undefined,
@@ -109,8 +119,10 @@ export default function PromotionForm({ defaultValues = {}, onSubmit, submitLabe
             priority: Number(data.priority) || 0,
             conditions: {
                 ...data.conditions,
-                minCartValue: data.conditions.minCartValue !== ""
-                    ? Number(data.conditions.minCartValue) : undefined,
+                minCartValue:
+                    data.conditions.minCartValue !== ""
+                        ? Number(data.conditions.minCartValue)
+                        : undefined,
             },
             startDate: data.startDate || undefined,
             endDate: data.endDate || undefined,
@@ -121,7 +133,7 @@ export default function PromotionForm({ defaultValues = {}, onSubmit, submitLabe
     return (
         <form onSubmit={handleSubmit(submit)} className="space-y-8">
 
-            {/* ── Basic Info ── */}
+            {/* ── Basic Info ────────────────────────────────────────────────── */}
             <div className="bg-card border border-accent-10 rounded-2xl p-6 space-y-5">
                 <SectionTitle>Basic Information</SectionTitle>
 
@@ -142,8 +154,7 @@ export default function PromotionForm({ defaultValues = {}, onSubmit, submitLabe
                     />
                 </Field>
 
-                {/* Type Selector */}
-                <Field label="Promotion Type *" error={errors.type?.message}>
+                <Field label="Promotion Type *">
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                         {TYPES.map(({ value, label, icon: Icon, desc }) => (
                             <label
@@ -154,8 +165,14 @@ export default function PromotionForm({ defaultValues = {}, onSubmit, submitLabe
                                     }`}
                             >
                                 <input type="radio" value={value} {...register("type")} className="sr-only" />
-                                <Icon size={18} className={selectedType === value ? "text-[var(--color-primary)]" : "text-body"} />
-                                <p className={`text-sm font-semibold mt-2 ${selectedType === value ? "text-[var(--color-primary)]" : "text-heading"}`}>{label}</p>
+                                <Icon
+                                    size={18}
+                                    className={selectedType === value ? "text-[var(--color-primary)]" : "text-body"}
+                                />
+                                <p className={`text-sm font-semibold mt-2 ${selectedType === value ? "text-[var(--color-primary)]" : "text-heading"
+                                    }`}>
+                                    {label}
+                                </p>
                                 <p className="text-body text-xs mt-0.5">{desc}</p>
                             </label>
                         ))}
@@ -163,7 +180,7 @@ export default function PromotionForm({ defaultValues = {}, onSubmit, submitLabe
                 </Field>
             </div>
 
-            {/* ── Discount ── */}
+            {/* ── Discount ─────────────────────────────────────────────────── */}
             {selectedType !== "free_shipping" && (
                 <div className="bg-card border border-accent-10 rounded-2xl p-6 space-y-5">
                     <SectionTitle>Discount Configuration</SectionTitle>
@@ -177,7 +194,10 @@ export default function PromotionForm({ defaultValues = {}, onSubmit, submitLabe
                         </Field>
 
                         {selectedDiscountType !== "free" && (
-                            <Field label={selectedDiscountType === "percent" ? "Percentage Value" : "Fixed Amount (৳)"} error={errors.value?.message}>
+                            <Field
+                                label={selectedDiscountType === "percent" ? "Percentage Value" : "Fixed Amount (৳)"}
+                                error={errors.value?.message}
+                            >
                                 <input
                                     type="number"
                                     min={0}
@@ -191,49 +211,109 @@ export default function PromotionForm({ defaultValues = {}, onSubmit, submitLabe
                 </div>
             )}
 
-            {/* ── BXGY ── */}
+            {/* ── BXGY ─────────────────────────────────────────────────────── */}
             {selectedType === "bxgy" && (
                 <div className="bg-card border border-accent-10 rounded-2xl p-6 space-y-5">
                     <SectionTitle>Buy X Get Y Settings</SectionTitle>
                     <div className="grid grid-cols-2 gap-5">
-                        <Field label="Buy (X)" error={errors.bxgy?.buy?.message}>
-                            <input type="number" min={1} {...register("bxgy.buy")} placeholder="e.g. 2" className={inputClass} />
+                        <Field label="Buy (X)">
+                            <input
+                                type="number"
+                                min={1}
+                                {...register("bxgy.buy")}
+                                placeholder="e.g. 2"
+                                className={inputClass}
+                            />
                         </Field>
-                        <Field label="Get (Y)">
-                            <input type="number" min={1} {...register("bxgy.get")} placeholder="e.g. 1" className={inputClass} />
+                        <Field label="Get (Y) free">
+                            <input
+                                type="number"
+                                min={1}
+                                {...register("bxgy.get")}
+                                placeholder="e.g. 1"
+                                className={inputClass}
+                            />
                         </Field>
                     </div>
-                    <Field label="Product IDs (comma-separated)" hint="MongoDB ObjectIDs of eligible products">
-                        <input {...register("bxgy.productIds")} placeholder="64abc..., 64def..." className={inputClass} />
-                    </Field>
+
+                    {/* ── ProductPicker for bxgy ── */}
+                    <Controller
+                        control={control}
+                        name="bxgy.productIds"
+                        render={({ field }) => (
+                            <ProductPicker
+                                label="Eligible Products"
+                                value={field.value || []}
+                                onChange={field.onChange}
+                                placeholder="Search and select products…"
+                            />
+                        )}
+                    />
                 </div>
             )}
 
-            {/* ── Scope ── */}
+            {/* ── Scope ────────────────────────────────────────────────────── */}
             {(selectedType === "product" || selectedType === "bxgy") && (
                 <div className="bg-card border border-accent-10 rounded-2xl p-6 space-y-5">
                     <SectionTitle>Scope</SectionTitle>
-                    <Field label="Categories (comma-separated)" hint="e.g. shoes, shirts">
-                        <input {...register("scope.categories")} placeholder="shoes, shirts" className={inputClass} />
+
+                    <Field label="Categories" hint="Comma-separated: shoes, shirts">
+                        <input
+                            {...register("scope.categories")}
+                            placeholder="shoes, shirts, accessories"
+                            className={inputClass}
+                        />
                     </Field>
-                    <Field label="Include Product IDs (comma-separated)">
-                        <input {...register("scope.products")} placeholder="64abc..., 64def..." className={inputClass} />
-                    </Field>
-                    <Field label="Exclude Product IDs (comma-separated)">
-                        <input {...register("scope.excludeProducts")} placeholder="64abc..., 64def..." className={inputClass} />
-                    </Field>
+
+                    {/* ── ProductPicker for scope.products ── */}
+                    <Controller
+                        control={control}
+                        name="scope.products"
+                        render={({ field }) => (
+                            <ProductPicker
+                                label="Include Products"
+                                value={field.value || []}
+                                onChange={field.onChange}
+                                placeholder="Search and select products to include…"
+                            />
+                        )}
+                    />
+
+                    {/* ── ProductPicker for scope.excludeProducts ── */}
+                    <Controller
+                        control={control}
+                        name="scope.excludeProducts"
+                        render={({ field }) => (
+                            <ProductPicker
+                                label="Exclude Products"
+                                value={field.value || []}
+                                onChange={field.onChange}
+                                placeholder="Search and select products to exclude…"
+                            />
+                        )}
+                    />
                 </div>
             )}
 
-            {/* ── Conditions ── */}
+            {/* ── Conditions ───────────────────────────────────────────────── */}
             <div className="bg-card border border-accent-10 rounded-2xl p-6 space-y-5">
                 <SectionTitle>Conditions</SectionTitle>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <Field label="Min Cart Value (৳)">
-                        <input type="number" min={0} {...register("conditions.minCartValue")} placeholder="e.g. 500" className={inputClass} />
+                        <input
+                            type="number"
+                            min={0}
+                            {...register("conditions.minCartValue")}
+                            placeholder="e.g. 500"
+                            className={inputClass}
+                        />
                     </Field>
                     <Field label="Payment Method">
-                        <input {...register("conditions.paymentMethod")} placeholder="e.g. bkash, card" className={inputClass} />
+                        <input
+                            {...register("conditions.paymentMethod")}
+                            placeholder="e.g. bkash, card"
+                            className={inputClass}
+                        />
                     </Field>
                 </div>
 
@@ -254,12 +334,16 @@ export default function PromotionForm({ defaultValues = {}, onSubmit, submitLabe
                 </Field>
 
                 <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" {...register("conditions.firstOrderOnly")} className="accent-[var(--color-primary)] w-4 h-4" />
+                    <input
+                        type="checkbox"
+                        {...register("conditions.firstOrderOnly")}
+                        className="accent-[var(--color-primary)] w-4 h-4"
+                    />
                     <span className="text-heading text-sm">First Order Only</span>
                 </label>
             </div>
 
-            {/* ── Usage & Priority ── */}
+            {/* ── Usage & Priority ─────────────────────────────────────────── */}
             <div className="bg-card border border-accent-10 rounded-2xl p-6 space-y-5">
                 <SectionTitle>Usage & Priority</SectionTitle>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
@@ -275,12 +359,18 @@ export default function PromotionForm({ defaultValues = {}, onSubmit, submitLabe
                 </div>
 
                 <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" {...register("stackable")} className="accent-[var(--color-primary)] w-4 h-4" />
-                    <span className="text-heading text-sm">Stackable (can combine with other promotions)</span>
+                    <input
+                        type="checkbox"
+                        {...register("stackable")}
+                        className="accent-[var(--color-primary)] w-4 h-4"
+                    />
+                    <span className="text-heading text-sm">
+                        Stackable (can combine with other promotions)
+                    </span>
                 </label>
             </div>
 
-            {/* ── Schedule ── */}
+            {/* ── Schedule ─────────────────────────────────────────────────── */}
             <div className="bg-card border border-accent-10 rounded-2xl p-6 space-y-5">
                 <SectionTitle>Schedule</SectionTitle>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -293,10 +383,14 @@ export default function PromotionForm({ defaultValues = {}, onSubmit, submitLabe
                 </div>
             </div>
 
-            {/* ── Status ── */}
+            {/* ── Status ───────────────────────────────────────────────────── */}
             <div className="bg-card border border-accent-10 rounded-2xl p-6">
                 <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" {...register("isActive")} className="accent-[var(--color-primary)] w-5 h-5" />
+                    <input
+                        type="checkbox"
+                        {...register("isActive")}
+                        className="accent-[var(--color-primary)] w-5 h-5"
+                    />
                     <div>
                         <p className="text-heading font-semibold">Active</p>
                         <p className="text-body text-xs">Promotion will be live immediately after saving</p>
@@ -304,7 +398,7 @@ export default function PromotionForm({ defaultValues = {}, onSubmit, submitLabe
                 </label>
             </div>
 
-            {/* Submit */}
+            {/* ── Submit ───────────────────────────────────────────────────── */}
             <div className="flex justify-end gap-3">
                 <button
                     type="button"
@@ -318,7 +412,9 @@ export default function PromotionForm({ defaultValues = {}, onSubmit, submitLabe
                     disabled={loading}
                     className="px-8 py-2.5 rounded-xl bg-[var(--color-primary)] hover:bg-[var(--color-secondary)] text-white text-sm font-semibold transition-colors disabled:opacity-60 flex items-center gap-2"
                 >
-                    {loading && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                    {loading && (
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    )}
                     {submitLabel}
                 </button>
             </div>

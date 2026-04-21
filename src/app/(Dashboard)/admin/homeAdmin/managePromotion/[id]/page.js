@@ -7,19 +7,38 @@ import { Zap, ArrowLeft, Loader2 } from "lucide-react";
 import PromotionForm from "../components/PromotionFrom";
 
 // Helper: convert ObjectId arrays back to comma-separated strings for the form
+// ─── UpdatePromotion/page.js — updated prepareDefaults ───────────────────────
+// scope.products and scope.excludeProducts are now string[] (ObjectIds)
+// bxgy.productIds is now string[] (ObjectIds)
+// Replace the old prepareDefaults function with this one:
+
 function prepareDefaults(p) {
     if (!p) return {};
     return {
         ...p,
         scope: {
-            categories: p.scope?.categories?.join(", ") || "",
-            products: p.scope?.products?.map((x) => (typeof x === "object" ? x._id : x)).join(", ") || "",
-            excludeProducts: p.scope?.excludeProducts?.map((x) => (typeof x === "object" ? x._id : x)).join(", ") || "",
+            // categories: keep as comma-separated string for the text input
+            categories: Array.isArray(p.scope?.categories)
+                ? p.scope.categories.join(", ")
+                : p.scope?.categories || "",
+
+            // products: array of id strings (populated objects → extract _id)
+            products: (p.scope?.products || []).map((x) =>
+                typeof x === "object" ? x._id : x
+            ),
+
+            // excludeProducts: same
+            excludeProducts: (p.scope?.excludeProducts || []).map((x) =>
+                typeof x === "object" ? x._id : x
+            ),
         },
         bxgy: {
             buy: p.bxgy?.buy ?? "",
             get: p.bxgy?.get ?? "",
-            productIds: p.bxgy?.productIds?.map((x) => (typeof x === "object" ? x._id : x)).join(", ") || "",
+            // productIds: array of id strings
+            productIds: (p.bxgy?.productIds || []).map((x) =>
+                typeof x === "object" ? x._id : x
+            ),
         },
         value: p.value ?? "",
         usageLimit: p.usageLimit ?? "",
