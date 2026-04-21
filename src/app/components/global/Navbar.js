@@ -454,7 +454,7 @@ export default function Navbar() {
 
 
       {/* Promo Ticker */}
-      <div className="bg-primary overflow-hidden h-8 flex items-center nb-font">
+      {/* <div className="bg-primary overflow-hidden h-8 flex items-center nb-font">
 
         <div className="nb-ticker-wrapper">
           {promoText?.map((item) => (
@@ -479,7 +479,7 @@ export default function Navbar() {
           ))}
         </div>
 
-      </div>
+      </div> */}
 
       {/* Header */}
       <header className={`sticky top-0 z-40 bg-card nb-font transition-all duration-300

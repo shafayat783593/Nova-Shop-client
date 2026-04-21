@@ -1,83 +1,68 @@
 "use client";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import api from '@/app/lib/api';
-import { Save, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import api from "@/app/lib/api";
+import { Zap, ArrowLeft } from "lucide-react";
+import PromotionForm from "../components/PromotionFrom";
 
-export default function CreatePromotionPage() {
+export default function CreatePromotion() {
     const router = useRouter();
-    const [formData, setFormData] = useState({ text: '', link: '', isActive: true });
-    const [toast, setToast] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-    const showToast = (type, msg) => {
-        setToast({ type, msg });
-        setTimeout(() => setToast(null), 4000);
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const handleSubmit = async (data) => {
+        setLoading(true);
+        setError(null);
         try {
-            await api.post('/api/promotions/add', formData);
-            showToast("success", "Promotion created successfully!");
-            setFormData({ text: '', link: '', isActive: true });
-            setTimeout(() => router.push('/admin/homeAdmin/managePromotion'), 1500);
+            await api.post("/api/promotions", data);
+            router.push("/admin/homeAdmin/managePromotion");
         } catch (err) {
-            showToast("error", "Failed to create promotion.");
+            const msg = err.response?.data?.message || "Failed to create promotion";
+            const errs = err.response?.data?.errors;
+            setError(errs ? errs.map((e) => `${e.field}: ${e.message}`).join(" · ") : msg);
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <div className="p-8 bg-bg min-h-screen">
-            {/* Toast Notification */}
-            {toast && (
-                <div className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl text-white text-sm font-semibold transition-all ${toast.type === "success" ? "bg-success" : "bg-danger"}`}>
-                    {toast.type === "success" ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-                    {toast.msg}
-                    <button onClick={() => setToast(null)} className="ml-2"><X size={15} /></button>
-                </div>
-            )}
+        <div className="min-h-screen bg-bg p-6 lg:p-8">
+            <div className="max-w-3xl mx-auto space-y-8">
 
-            <div className="max-w-2xl mx-auto bg-card p-8 rounded-3xl border border-accent-10">
-                <h2 className="text-2xl font-display text-heading mb-6">Create New Promotion</h2>
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Promotion Text */}
-                    <input
-                        className="w-full p-3 rounded-lg border border-accent-10 bg-bg text-heading"
-                        placeholder="Promotion Text (e.g., Summer Sale 50% OFF)"
-                        value={formData.text}
-                        onChange={(e) => setFormData({ ...formData, text: e.target.value })}
-                        required
-                    />
-
-                    {/* Promotion Link */}
-                    <input
-                        className="w-full p-3 rounded-lg border border-accent-10 bg-bg text-heading"
-                        placeholder="Link (Optional)"
-                        value={formData.link}
-                        onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-                    />
-
-                    {/* IsActive Toggle */}
-                    <div className="flex items-center gap-3 text-body">
-                        <input
-                            type="checkbox"
-                            checked={formData.isActive}
-                            onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                            className="w-5 h-5 accent-primary"
-                        />
-                        <span>Set as Active</span>
-                    </div>
-
+                {/* Header */}
+                <div>
                     <button
-                        type="submit"
-                        className="w-full bg-primary text-white py-3 rounded-lg font-bold hover:bg-secondary transition-all flex items-center justify-center gap-2"
+                        onClick={() => router.push("/admin/promotions")}
+                        className="flex items-center gap-1.5 text-body text-sm hover:text-heading transition-colors mb-4"
                     >
-                        <Save size={20} />
-                        Save Promotion
+                        <ArrowLeft size={15} /> Back to Promotions
                     </button>
-                </form>
+
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-[var(--color-primary)]/15">
+                            <Zap size={22} className="text-[var(--color-primary)]" />
+                        </div>
+                        <div>
+                            <h1 className="text-heading text-2xl font-bold font-display">Create Promotion</h1>
+                            <p className="text-body text-sm">Set up a new discount or campaign</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Error Banner */}
+                {error && (
+                    <div className="p-4 rounded-xl bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/30 text-[var(--color-danger)] text-sm">
+                        {error}
+                    </div>
+                )}
+
+                {/* Form */}
+                <PromotionForm
+                    onSubmit={handleSubmit}
+                    submitLabel="Create Promotion"
+                    loading={loading}
+                />
             </div>
         </div>
     );

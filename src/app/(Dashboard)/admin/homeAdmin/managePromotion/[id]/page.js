@@ -1,93 +1,124 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import api from '@/app/lib/api';
-import { Save, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import api from "@/app/lib/api";
+import { Zap, ArrowLeft, Loader2 } from "lucide-react";
+import PromotionForm from "../components/PromotionFrom";
 
-export default function EditPromotionPage() {
-    const { id } = useParams();
-    const router = useRouter();
-    const [formData, setFormData] = useState({ text: '', link: '', isActive: true });
-    const [toast, setToast] = useState(null);
-
-    const showToast = (type, msg) => {
-        setToast({ type, msg });
-        setTimeout(() => setToast(null), 4000);
+// Helper: convert ObjectId arrays back to comma-separated strings for the form
+function prepareDefaults(p) {
+    if (!p) return {};
+    return {
+        ...p,
+        scope: {
+            categories: p.scope?.categories?.join(", ") || "",
+            products: p.scope?.products?.map((x) => (typeof x === "object" ? x._id : x)).join(", ") || "",
+            excludeProducts: p.scope?.excludeProducts?.map((x) => (typeof x === "object" ? x._id : x)).join(", ") || "",
+        },
+        bxgy: {
+            buy: p.bxgy?.buy ?? "",
+            get: p.bxgy?.get ?? "",
+            productIds: p.bxgy?.productIds?.map((x) => (typeof x === "object" ? x._id : x)).join(", ") || "",
+        },
+        value: p.value ?? "",
+        usageLimit: p.usageLimit ?? "",
+        perUserLimit: p.perUserLimit ?? "",
+        conditions: {
+            minCartValue: p.conditions?.minCartValue ?? "",
+            userRoles: p.conditions?.userRoles || [],
+            firstOrderOnly: p.conditions?.firstOrderOnly || false,
+            paymentMethod: p.conditions?.paymentMethod || "",
+        },
+        startDate: p.startDate ? p.startDate.slice(0, 16) : "",
+        endDate: p.endDate ? p.endDate.slice(0, 16) : "",
     };
+}
 
-    // নির্দিষ্ট প্রমোশন ডাটা ফেচ করা
+export default function UpdatePromotion() {
+    const router = useRouter();
+    const params = useParams();
+    const id = params?.id;
+
+    const [defaults, setDefaults] = useState(null);
+    const [fetchLoading, setFetchLoading] = useState(true);
+    const [submitLoading, setSubmitLoading] = useState(false);
+    const [error, setError] = useState(null);
+
     useEffect(() => {
-        const fetchPromotion = async () => {
+        if (!id) return;
+        (async () => {
             try {
-                const res = await api.get(`/api/promotions/${id}`);
-                setFormData(res.data);
-            } catch (err) {
-                showToast("error", "Failed to load promotion data.");
+                const { data } = await api.get(`/api/promotions/${id}`);
+                setDefaults(prepareDefaults(data.data));
+            } catch {
+                setError("Promotion not found");
+            } finally {
+                setFetchLoading(false);
             }
-        };
-        fetchPromotion();
+        })();
     }, [id]);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const handleSubmit = async (data) => {
+        setSubmitLoading(true);
+        setError(null);
         try {
-            await api.put(`/api/promotions/${id}`, formData);
-            showToast("success", "Promotion updated successfully!");
-            setTimeout(() => router.push('/admin/homeAdmin/managePromotion'), 1500);
+            await api.put(`/api/promotions/${id}`, data);
+            router.push("/admin/promotions");
         } catch (err) {
-            showToast("error", "Failed to update promotion.");
+            const msg = err.response?.data?.message || "Failed to update promotion";
+            const errs = err.response?.data?.errors;
+            setError(errs ? errs.map((e) => `${e.field}: ${e.message}`).join(" · ") : msg);
+        } finally {
+            setSubmitLoading(false);
         }
     };
 
     return (
-        <div className="p-8 bg-bg min-h-screen">
-            {/* Toast Notification */}
-            {toast && (
-                <div className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl text-white text-sm font-semibold transition-all ${toast.type === "success" ? "bg-success" : "bg-danger"}`}>
-                    {toast.type === "success" ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-                    {toast.msg}
-                    <button onClick={() => setToast(null)} className="ml-2"><X size={15} /></button>
-                </div>
-            )}
+        <div className="min-h-screen bg-bg p-6 lg:p-8">
+            <div className="max-w-3xl mx-auto space-y-8">
 
-            <div className="max-w-2xl mx-auto bg-card p-8 rounded-3xl border border-accent-10">
-                <h2 className="text-2xl font-display text-heading mb-6">Edit Promotion</h2>
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <input
-                        className="w-full p-3 rounded-lg border border-accent-10 bg-bg text-heading"
-                        placeholder="Promotion Text"
-                        value={formData.text}
-                        onChange={(e) => setFormData({ ...formData, text: e.target.value })}
-                        required
-                    />
-
-                    <input
-                        className="w-full p-3 rounded-lg border border-accent-10 bg-bg text-heading"
-                        placeholder="Link"
-                        value={formData.link}
-                        onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-                    />
-
-                    <div className="flex items-center gap-3 text-body">
-                        <input
-                            type="checkbox"
-                            checked={formData.isActive}
-                            onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                            className="w-5 h-5 accent-primary"
-                        />
-                        <span>Set as Active</span>
-                    </div>
-
+                {/* Header */}
+                <div>
                     <button
-                        type="submit"
-                        className="w-full bg-primary text-white py-3 rounded-lg font-bold hover:bg-secondary transition-all flex items-center justify-center gap-2"
+                        onClick={() => router.push("/admin/promotions")}
+                        className="flex items-center gap-1.5 text-body text-sm hover:text-heading transition-colors mb-4"
                     >
-                        <Save size={20} />
-                        Update Promotion
+                        <ArrowLeft size={15} /> Back to Promotions
                     </button>
-                </form>
+
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-[var(--color-secondary)]/15">
+                            <Zap size={22} className="text-[var(--color-secondary)]" />
+                        </div>
+                        <div>
+                            <h1 className="text-heading text-2xl font-bold font-display">Update Promotion</h1>
+                            <p className="text-body text-sm">Edit existing promotion details</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Error */}
+                {error && (
+                    <div className="p-4 rounded-xl bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/30 text-[var(--color-danger)] text-sm">
+                        {error}
+                    </div>
+                )}
+
+                {/* Loading */}
+                {fetchLoading ? (
+                    <div className="flex items-center justify-center py-20 gap-3 text-body">
+                        <Loader2 size={22} className="animate-spin" />
+                        Loading promotion…
+                    </div>
+                ) : defaults ? (
+                    <PromotionForm
+                        defaultValues={defaults}
+                        onSubmit={handleSubmit}
+                        submitLabel="Save Changes"
+                        loading={submitLoading}
+                    />
+                ) : null}
             </div>
         </div>
     );
