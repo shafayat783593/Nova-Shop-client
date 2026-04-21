@@ -110,10 +110,10 @@ const fetchBadges = async () => {
   };
 };
 
-const fetchPromo = async () => {
-  const { data } = await api.get("/api/promotion/active");
-  return data?.text || null;
-};
+// const fetchPromo = async () => {
+//   const { data } = await api.get("/api/promotion/active");
+//   return data?.text || null;
+// };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // MegaMenu
@@ -338,14 +338,18 @@ export default function Navbar() {
     retry: 1,
   });
 
-  const { data: promoRaw } = useQuery({
+  const { data: promoText } = useQuery({
     queryKey: ["navbar-promo"],
-    queryFn: fetchPromo,
+    queryFn: async () => {
+      return api.get("/api/promotions").then((res) => {
+        return res.data
+      })
+    },
     staleTime: 1000 * 60 * 30,
     retry: 1,
   });
-
-  const promoText = promoRaw ? `${promoRaw} · ${promoRaw}` : "🌿 Free shipping on orders $50+";
+  console.log(promoText)
+  // const promoText = promoRaw ? `${promoRaw} · ${promoRaw}` : "🌿 Free shipping on orders $50+";
 
   // Effects
   useEffect(() => setMounted(true), []);
@@ -396,11 +400,11 @@ export default function Navbar() {
 
   return (
     <>
-   
 
 
-      
-        <style>{`
+
+
+      <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=Nunito:wght@400;500;600;700;800&display=swap');
         .nb-link { position: relative; text-decoration: none; }
         .nb-link::after {
@@ -418,12 +422,63 @@ export default function Navbar() {
         .nb-search.open { max-height: 72px; }
         .nb-drawer  { transition: transform .35s cubic-bezier(.4,0,.2,1); }
         .nb-overlay { transition: opacity .3s ease; }
-      `}</style>
+
+        .nb-ticker-container {
+  display: flex;
+  gap: 50px; 
+  white-space: nowrap;
+}
+
+
+.nb-ticker-wrapper {
+  display: flex;
+  white-space: nowrap;
+  animation: nb-tick 26s linear infinite;
+  /* নিশ্চিত করুন এটি ডান দিক থেকে শুরু হচ্ছে */
+  padding-left: 100%; 
+}
+
+
+
+@keyframes nb-tick {
+  from { 
+    /* ডান দিক থেকে শুরু হবে (স্ক্রিনের বাইরে) */
+    transform: translateX(0%); 
+  } 
+  to { 
+    /* বাম দিকে চলে যাবে (পুরো কন্টেইনারের দৈর্ঘ্যের সমান মাইনাস) */
+    transform: translateX(-100%); 
+  } 
+}
+              `}</style>
 
 
       {/* Promo Ticker */}
       <div className="bg-primary overflow-hidden h-8 flex items-center nb-font">
-        <p className="nb-ticker text-accent text-xs font-bold tracking-wide">{promoText}</p>
+
+        <div className="nb-ticker-wrapper">
+          {promoText?.map((item) => (
+            <div key={item._id} className="mx-6 flex items-center">
+              {item.link ? (
+           
+                <Link
+                  href={item.link}
+                  className="text-accent text-xs font-bold tracking-wide hover:underline cursor-pointer"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {item.text}
+                </Link>
+              ) : (
+              
+                <p className="text-accent text-xs font-bold tracking-wide">
+                  {item.text}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+
       </div>
 
       {/* Header */}
