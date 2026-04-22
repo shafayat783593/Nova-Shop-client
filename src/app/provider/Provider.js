@@ -6,6 +6,7 @@ import { AuthProvider } from '../context/AuthContext';
 import { ThemeProvider } from 'next-themes';
 import SmoothProvider from '../components/global/SmoothProvider';
 import { Toaster } from 'react-hot-toast';
+import { CartProvider } from '../context/Cartcontext';
 
 
 
@@ -30,9 +31,11 @@ export default function Provider({ children }) {
                 disableTransitionOnChange={false} >
                 <Toaster position="top-right" reverseOrder={false} />
                     <AuthProvider>
+                        <CartProvider>
                         <SmoothProvider>
                             {children}
                         </SmoothProvider>
+                    </CartProvider>
                     </AuthProvider>
                
             </ThemeProvider>

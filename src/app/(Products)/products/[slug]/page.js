@@ -9,6 +9,7 @@ import {
     Plus, Minus, Tag, Zap, Package, ChevronDown,
     Check, ArrowLeft, ZoomIn, Copy, MessageCircle
 } from "lucide-react";
+import AddToCartButton from "../../components/AddToCartButton";
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 function Skeleton({ className = "" }) {
@@ -577,19 +578,7 @@ export default function ProductPage() {
                                 max={stock ?? 99}
                             />
 
-                            <button
-                                onClick={handleAddToCart}
-                                disabled={!inStock}
-                                className={`flex-1 min-w-[160px] h-11 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${addedToCart
-                                    ? "bg-green-500 text-white"
-                                    : inStock
-                                        ? "bg-[var(--color-primary)] hover:bg-[var(--color-secondary)] text-white active:scale-95"
-                                        : "bg-[var(--accent-opacity)] text-body cursor-not-allowed"
-                                    }`}
-                            >
-                                {addedToCart ? <><Check size={16} /> Added!</> : <><ShoppingCart size={16} /> Add to Cart</>}
-                            </button>
-
+                            <AddToCartButton productId={product._id} variantId={selectedVariant?._id} qty={qty} />
                             <button
                                 disabled={!inStock}
                                 className="flex-1 min-w-[140px] h-11 rounded-xl font-bold text-sm border-2 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"

@@ -27,7 +27,7 @@ const NAV_LINKS = [
       { icon: "🪴", name: "Home & Garden", href: "/shop/home", desc: "Living spaces" },
     ],
   },
-  { label: "Products", href: "/product" },
+  { label: "Products", href: "/products" },
   { label: "Deals", href: "/deals" },
   { label: "About", href: "/about" },
 ];
@@ -549,7 +549,7 @@ export default function Navbar() {
             )}
 
             {/* Cart */}
-            <Link href="/cart" aria-label="Cart"
+            <Link href="/productCart" aria-label="Cart"
               className="hidden sm:flex items-center gap-2 bg-primary hover:bg-secondary
                          text-accent h-[38px] px-4 rounded-xl text-sm font-bold
                          transition-all hover:scale-105 active:scale-95

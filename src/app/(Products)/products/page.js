@@ -138,7 +138,7 @@ function ProductCard({ product, view = "grid" }) {
 
     return (
         <div
-            onClick={() => router.push(`/product/${product.slug}`)}
+            onClick={() => router.push(`/products/${product.slug}`)}
             className="group bg-card rounded-2xl border border-accent-10 overflow-hidden cursor-pointer hover:border-[var(--color-primary)]/40 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col"
         >
             {/* Image */}
