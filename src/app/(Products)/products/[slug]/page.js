@@ -180,6 +180,31 @@ function VariantSelector({ variants = [], selected, onSelect }) {
     const [activeSize, setActiveSize] = useState(selected?.size || sizes[0] || null);
     const [activeColor, setActiveColor] = useState(selected?.color || colors[0] || null);
 
+
+
+
+    const handleSizeChange = (size) => {
+        setActiveSize(size);
+        // নতুন size এর সাথে match করে প্রথম available variant খোঁজো
+        const matchedVariant = variants.find(v => v.size === size);
+        if (matchedVariant) {
+            setActiveColor(matchedVariant.color);
+            onSelect(matchedVariant);
+        }
+    };
+
+    const handleColorChange = (color) => {
+        setActiveColor(color);
+        const matchedVariant = variants.find(v => v.color === color);
+        if (matchedVariant) {
+            setActiveSize(matchedVariant.size);
+            onSelect(matchedVariant);
+        }
+    };
+
+
+
+
     const getVariant = (size, color) =>
         variants.find((v) => v.size === size && v.color === color);
 
@@ -189,10 +214,16 @@ function VariantSelector({ variants = [], selected, onSelect }) {
     };
 
     const isAvailable = (size, color) => {
-        const v = getVariant(size, color);
-        return v && v.stock > 0;
+        // শুধু check করো ওই color/size এর কোনো variant আছে কিনা
+        // অন্য dimension ignore করো
+        if (size && !color) {
+            return variants.some(v => v.size === size && v.stock > 0);
+        }
+        if (color && !size) {
+            return variants.some(v => v.color === color && v.stock > 0);
+        }
+        return variants.some(v => v.size === size && v.color === color && v.stock > 0);
     };
-
     return (
         <div className="space-y-4">
             {sizes.length > 0 && (
@@ -202,11 +233,11 @@ function VariantSelector({ variants = [], selected, onSelect }) {
                     </p>
                     <div className="flex flex-wrap gap-2">
                         {sizes.map((size) => {
-                            const avail = activeColor ? isAvailable(size, activeColor) : true;
+                            const avail = isAvailable(size, null);
                             return (
                                 <button
                                     key={size}
-                                    onClick={() => { setActiveSize(size); handleChange(size, activeColor); }}
+                                    onClick={() => handleSizeChange(size)}
                                     disabled={!avail}
                                     className={`px-4 py-1.5 rounded-xl text-sm font-semibold border transition-all ${activeSize === size
                                         ? "border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
@@ -230,11 +261,12 @@ function VariantSelector({ variants = [], selected, onSelect }) {
                     </p>
                     <div className="flex flex-wrap gap-2">
                         {colors.map((color) => {
-                            const avail = activeSize ? isAvailable(activeSize, color) : true;
+                            const avail = isAvailable(null, color);
                             return (
                                 <button
                                     key={color}
-                                    onClick={() => { setActiveColor(color); handleChange(activeSize, color); }}
+                                    onClick={() => handleColorChange(color)}
+
                                     disabled={!avail}
                                     className={`px-4 py-1.5 rounded-xl text-sm font-medium border transition-all ${activeColor === color
                                         ? "border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
@@ -337,7 +369,7 @@ function ReviewCard({ review }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ProductPage() {
     const { slug } = useParams();
-    console.log("Product slug:", slug);
+    console.log("Product slug:..................................", slug);
     const router = useRouter();
 
     const [product, setProduct] = useState(null);

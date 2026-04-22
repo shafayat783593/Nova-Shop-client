@@ -182,9 +182,8 @@ console.log("Product slug from URL:", slug);
             isActive: form.isActive,
             isFeatured: form.isFeatured,
         };
-
         try {
-            await api.put(`/api/products/${id}`, payload);
+    await api.put(`/api/products/${form.slug}`, payload);
             showToast("success", "Product updated successfully!");
             setTimeout(() => router.push("/admin/manage-products"), 1500);
         } catch (err) {

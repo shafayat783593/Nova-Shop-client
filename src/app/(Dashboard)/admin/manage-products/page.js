@@ -19,7 +19,7 @@ export default function ManageProductsPage() {
     const [toast, setToast] = useState(null);
     const [deleteModal, setDeleteModal] = useState(null); // product to delete
     const [toggling, setToggling] = useState(null); // id being toggled
-
+console.log("Products in state: ", products.map((p) => p.slug));
     // Filters
     const [search, setSearch] = useState("");
     const [category, setCategory] = useState("");

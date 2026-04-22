@@ -1,14 +1,9 @@
 "use client";
 
-// ─── CartContext ──────────────────────────────────────────────────────────────
-// Wrap your app with <CartProvider>
-// Use the useCart() hook anywhere
-
 import { createContext, useContext, useEffect, useReducer, useCallback } from "react";
 import api from "@/app/lib/api";
 import { useAuth } from "./AuthContext";
 
-// ── Types ──────────────────────────────────────────────────────────────────
 const INIT = "INIT";
 const SET = "SET";
 const CLEAR = "CLEAR";
@@ -17,7 +12,7 @@ const ADDING = "ADDING";
 const initialState = {
     cart: null,
     loading: true,
-    adding: false,   // item being added (show spinner on button)
+    adding: false,
 };
 
 function reducer(state, action) {
@@ -30,31 +25,23 @@ function reducer(state, action) {
     }
 }
 
-// ── Session ID helpers ────────────────────────────────────────────────────
-function getSessionId() {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem("cart_session_id");
-}
-function saveSessionId(id) {
-    if (typeof window !== "undefined") localStorage.setItem("cart_session_id", id);
-}
-function clearSessionId() {
-    if (typeof window !== "undefined") localStorage.removeItem("cart_session_id");
-}
+// ── Session ID ────────────────────────────────────────────────────────────────
+const getSessionId = () => typeof window !== "undefined" ? localStorage.getItem("cart_session_id") : null;
+const saveSessionId = (id) => typeof window !== "undefined" && localStorage.setItem("cart_session_id", id);
+const clearSessionId = () => typeof window !== "undefined" && localStorage.removeItem("cart_session_id");
 
-// ── Axios header helper ────────────────────────────────────────────────────
 function cartHeaders() {
     const sid = getSessionId();
     return sid ? { "x-session-id": sid } : {};
 }
 
-// ── Context ────────────────────────────────────────────────────────────────
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
     const [state, dispatch] = useReducer(reducer, initialState);
-    const { user, isAuth } = useAuth()
-    // Fetch cart on mount
+    const { user, isAuth } = useAuth();
+
+    // ── fetchCart ─────────────────────────────────────────────────────────────
     const fetchCart = useCallback(async () => {
         try {
             const { data } = await api.get("/api/product/cart", { headers: cartHeaders() });
@@ -64,21 +51,30 @@ export function CartProvider({ children }) {
         }
     }, []);
 
-    useEffect(() => { fetchCart(); }, [fetchCart]);
+    // Fetch on mount AND whenever auth state changes
+    useEffect(() => {
+        fetchCart();
+    }, [fetchCart, isAuth]); // ← isAuth যোগ: login/logout এ re-fetch
 
-    // Merge guest cart after login
+    // ── Merge guest cart after login ──────────────────────────────────────────
     useEffect(() => {
         if (!isAuth || !user) return;
         const sid = getSessionId();
         if (!sid) return;
+
         (async () => {
-            await api.post("/api/product/cart/merge", { sessionId: sid });
-            clearSessionId();
+            try {
+                await api.post("/api/product/cart/merge", { sessionId: sid });
+                clearSessionId();
+            } catch {
+                // merge fail হলেও cart fetch করো
+            }
             await fetchCart();
         })();
-    }, [isAuth]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isAuth]); // fetchCart intentionally omitted — infinite loop এড়াতে
 
-    // ── addToCart ────────────────────────────────────────────────────────
+    // ── addToCart ─────────────────────────────────────────────────────────────
     const addToCart = useCallback(async ({ productId, variantId, quantity = 1 }) => {
         dispatch({ type: ADDING, payload: true });
         try {
@@ -87,7 +83,6 @@ export function CartProvider({ children }) {
                 { productId, variantId, quantity },
                 { headers: cartHeaders() }
             );
-            // Save new sessionId if backend created one
             if (data.sessionId) saveSessionId(data.sessionId);
             dispatch({ type: SET, payload: data.data });
             return { success: true };
@@ -97,7 +92,7 @@ export function CartProvider({ children }) {
         }
     }, []);
 
-    // ── updateQty ────────────────────────────────────────────────────────
+    // ── updateQty ─────────────────────────────────────────────────────────────
     const updateQty = useCallback(async (itemId, quantity) => {
         try {
             const { data } = await api.patch(
@@ -109,15 +104,18 @@ export function CartProvider({ children }) {
         } catch { }
     }, []);
 
-    // ── removeItem ───────────────────────────────────────────────────────
+    // ── removeItem ────────────────────────────────────────────────────────────
     const removeItem = useCallback(async (itemId) => {
         try {
-            const { data } = await api.delete(`/api/product/cart/item/${itemId}`, { headers: cartHeaders() });
+            const { data } = await api.delete(
+                `/api/product/cart/item/${itemId}`,
+                { headers: cartHeaders() }
+            );
             dispatch({ type: SET, payload: data.data });
         } catch { }
     }, []);
 
-    // ── clearCart ────────────────────────────────────────────────────────
+    // ── clearCart ─────────────────────────────────────────────────────────────
     const clearCart = useCallback(async () => {
         try {
             await api.delete("/api/product/cart", { headers: cartHeaders() });
@@ -125,10 +123,14 @@ export function CartProvider({ children }) {
         } catch { }
     }, []);
 
-    // ── applyCoupon ──────────────────────────────────────────────────────
+    // ── applyCoupon ───────────────────────────────────────────────────────────
     const applyCoupon = useCallback(async (code) => {
         try {
-            const { data } = await api.post("/api/product/cart/coupon", { code }, { headers: cartHeaders() });
+            const { data } = await api.post(
+                "/api/product/cart/coupon",
+                { code },
+                { headers: cartHeaders() }
+            );
             dispatch({ type: SET, payload: data.data });
             return { success: true };
         } catch (err) {
@@ -136,22 +138,23 @@ export function CartProvider({ children }) {
         }
     }, []);
 
-    // ── removeCoupon ─────────────────────────────────────────────────────
+    // ── removeCoupon ──────────────────────────────────────────────────────────
     const removeCoupon = useCallback(async () => {
         try {
-            const { data } = await api.delete("/api/product/cart/coupon", { headers: cartHeaders() });
+            const { data } = await api.delete(
+                "/api/product/cart/coupon",
+                { headers: cartHeaders() }
+            );
             dispatch({ type: SET, payload: data.data });
         } catch { }
     }, []);
-
-    const itemCount = state.cart?.totalItems || 0;
 
     return (
         <CartContext.Provider value={{
             cart: state.cart,
             loading: state.loading,
             adding: state.adding,
-            itemCount,
+            itemCount: state.cart?.totalItems || 0,
             addToCart,
             updateQty,
             removeItem,
