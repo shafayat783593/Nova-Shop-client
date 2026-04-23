@@ -32,6 +32,7 @@ const clearSessionId = () => typeof window !== "undefined" && localStorage.remov
 
 function cartHeaders() {
     const sid = getSessionId();
+    console.log("Getting cart headers, sessionId:", sid);
     return sid ? { "x-session-id": sid } : {};
 }
 
@@ -44,9 +45,17 @@ export function CartProvider({ children }) {
     // ── fetchCart ─────────────────────────────────────────────────────────────
     const fetchCart = useCallback(async () => {
         try {
-            const { data } = await api.get("/api/product/cart", { headers: cartHeaders() });
+            const headers = cartHeaders();
+            console.log("=== CART FETCH ===");
+            console.log("isAuth:", isAuth);
+            console.log("sessionId header:", headers);
+            console.log("localStorage session:", localStorage.getItem("cart_session_id"));
+
+            const { data } = await api.get("/api/product/cart", { headers });
+            console.log("Cart response:", data);
             dispatch({ type: SET, payload: data.data });
-        } catch {
+        } catch (err) {
+            console.error("Cart fetch error:", err.response?.data || err.message);
             dispatch({ type: INIT });
         }
     }, []);

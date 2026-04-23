@@ -8,6 +8,8 @@ import {
     Star, Heart, ShoppingCart, Package, LayoutGrid, List,
     ArrowUpDown, Tag, Zap, Check, Filter, ChevronLeft,
 } from "lucide-react";
+import WishlistButton from "../components/Wishlistbutton";
+import AddToCartButton from "../components/AddToCartButton";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SKELETON
@@ -163,22 +165,11 @@ function ProductCard({ product, view = "grid" }) {
                 </div>
 
                 {/* Wishlist */}
-                <button
-                    onClick={(e) => { e.stopPropagation(); setWished(v => !v); }}
-                    className={`absolute top-2 right-2 w-8 h-8 rounded-xl flex items-center justify-center backdrop-blur-sm border transition-all ${wished ? "bg-red-50/20 border-red-300 text-red-400" : "bg-card/60 border-accent-10 text-body hover:text-red-400 opacity-0 group-hover:opacity-100"}`}
-                >
-                    <Heart size={14} fill={wished ? "currentColor" : "none"} />
-                </button>
+             <WishlistButton productId={product._id} size="icon" />
+              
 
                 {/* Quick add overlay */}
-                <div className="absolute bottom-0 left-0 right-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                    <button
-                        onClick={handleAdd}
-                        className={`w-full py-2.5 text-sm font-bold flex items-center justify-center gap-2 transition-colors ${added ? "bg-green-500 text-white" : "bg-[var(--color-primary)] text-white hover:bg-[var(--color-secondary)]"}`}
-                    >
-                        {added ? <><Check size={14} /> Added to Cart</> : <><ShoppingCart size={14} /> Quick Add</>}
-                    </button>
-                </div>
+                            <AddToCartButton productId={product._id} />
             </div>
 
             {/* Info */}

@@ -10,6 +10,7 @@ import {
     Check, ArrowLeft, ZoomIn, Copy, MessageCircle
 } from "lucide-react";
 import AddToCartButton from "../../components/AddToCartButton";
+import WishlistButton from "../../components/Wishlistbutton";
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 function Skeleton({ className = "" }) {
@@ -618,7 +619,7 @@ export default function ProductPage() {
                                 Buy Now
                             </button>
 
-                            <button
+                            {/* <button
                                 onClick={() => setWishlisted((v) => !v)}
                                 className={`w-11 h-11 rounded-xl border flex items-center justify-center transition-all ${wishlisted
                                     ? "border-red-400 bg-red-50 text-red-500"
@@ -626,7 +627,9 @@ export default function ProductPage() {
                                     }`}
                             >
                                 <Heart size={18} fill={wishlisted ? "currentColor" : "none"} />
-                            </button>
+                            </button> */}
+
+                               <WishlistButton productId={product._id} size="icon" />
 
                             <button
                                 onClick={handleCopyLink}

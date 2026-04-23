@@ -35,7 +35,7 @@ const NAV_LINKS = [
 const ACCOUNT_LINKS = [
   { icon: User, label: "My Profile", href: "/account/profile", badge: null },
   { icon: Package, label: "My Orders", href: "/account/orders", badge: "orders" },
-  { icon: Heart, label: "Wishlist", href: "/account/wishlist", badge: "wishlist" },
+  { icon: Heart, label: "Wishlist", href: "/wishlist", badge: "wishlist" },
   { icon: MapPin, label: "Addresses", href: "/account/address", badge: null },
   { icon: CreditCard, label: "Payment Methods", href: "/account/payment", badge: null },
   // { icon: Settings, label: "Settings", href: "/account/settings", badge: null },
@@ -535,7 +535,7 @@ export default function Navbar() {
             {/* Wishlist */}
             {isAuth && (
               <div className="hidden sm:block relative">
-                <Link href="/account/wishlist" aria-label="Wishlist"
+                <Link href="/wishlist" aria-label="Wishlist"
                   className="w-[38px] h-[38px] rounded-xl bg-accent/20 text-heading
                              flex items-center justify-center hover:bg-accent/30
                              transition-all hover:scale-105 active:scale-95 no-underline">
