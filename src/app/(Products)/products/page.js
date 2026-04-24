@@ -119,7 +119,7 @@ function ProductCard({ product, view = "grid" }) {
                     </div>
                     <div className="flex items-center justify-between mt-3 flex-wrap gap-3">
                         <div className="flex items-end gap-2">
-                            <span className="text-heading text-xl font-black font-display">৳{price?.toLocaleString()}</span>
+                            <span className="text-heading text-xl font-black">৳{price?.toLocaleString()}</span>
                             {hasDiscount && <span className="text-body text-sm line-through">৳{product.basePrice?.toLocaleString()}</span>}
                         </div>
                         <div className="flex items-center gap-2">
@@ -183,7 +183,7 @@ function ProductCard({ product, view = "grid" }) {
                     <span className="text-body text-xs">({product.totalReviews || 0})</span>
                 </div>
                 <div className="flex items-end gap-2 mt-2">
-                    <span className="text-heading font-black text-base font-display">৳{price?.toLocaleString()}</span>
+                    <span className="text-heading font-black text-base">৳{price?.toLocaleString()}</span>
                     {hasDiscount && (
                         <span className="text-body text-xs line-through">৳{product.basePrice?.toLocaleString()}</span>
                     )}
@@ -484,7 +484,7 @@ export default function ProductsPage() {
 
                 {/* ── Page Header ── */}
                 <div className="mb-8">
-                    <h1 className="text-heading text-3xl font-black font-display">All Products</h1>
+                    <h1 className="text-heading text-3xl font-black">All Products</h1>
                     <p className="text-body text-sm mt-1">
                         {loading ? "Loading…" : `${pagination.total || 0} products found`}
                         {category && <span> in <span className="text-[var(--color-primary)] font-semibold capitalize">{category}</span></span>}

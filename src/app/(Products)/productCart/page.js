@@ -142,7 +142,7 @@ function CartItemCard({ item, onQty, onRemove }) {
             {/* Price */}
             <div className="flex flex-col items-end justify-between flex-shrink-0">
                 <div className="text-right">
-                    <p className="text-heading font-black text-base font-display">৳{lineTotal?.toLocaleString()}</p>
+                    <p className="text-heading font-black text-base">৳{lineTotal?.toLocaleString()}</p>
                     {hasDiscount && (
                         <p className="text-body text-xs line-through">
                             ৳{(item.priceAtAdd * item.quantity)?.toLocaleString()}
@@ -277,7 +277,7 @@ function OrderSummary({ cart, onCoupon, onRemoveCoupon, onCheckout }) {
                 {/* Total */}
                 <div className="border-t border-accent-10 pt-3 flex justify-between items-center">
                     <span className="text-heading font-bold">Total</span>
-                    <span className="text-heading font-black text-xl font-display">৳{cart.total?.toLocaleString()}</span>
+                    <span className="text-heading font-black text-xl ">৳{cart.total?.toLocaleString()}</span>
                 </div>
 
                 {savings > 0 && (
@@ -347,7 +347,7 @@ export default function CartPage() {
                         <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[var(--accent-opacity)] flex items-center justify-center text-body text-sm font-bold">0</div>
                     </div>
                     <div>
-                        <h2 className="text-heading text-2xl font-black font-display mb-2">Your cart is empty</h2>
+                        <h2 className="text-heading text-2xl font-black  mb-2">Your cart is empty</h2>
                         <p className="text-body text-sm">Looks like you haven't added anything yet. Start shopping!</p>
                     </div>
                     <button
@@ -376,7 +376,7 @@ export default function CartPage() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
                     <div>
-                        <h1 className="text-heading text-2xl lg:text-3xl font-black font-display flex items-center gap-3">
+                        <h1 className="text-heading text-2xl lg:text-3xl font-black flex items-center gap-3">
                             <ShoppingCart className="text-[var(--color-primary)]" size={28} />
                             My Cart
                         </h1>

@@ -477,17 +477,7 @@ export default function ProductPage() {
 
     return (
         <div className="min-h-screen bg-bg">
-            {/* <style>{`
-                @keyframes shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
-                @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-                .fade-up { animation: fadeUp 0.4s ease forwards; }
-                .fade-up-1 { animation: fadeUp 0.4s 0.05s ease both; }
-                .fade-up-2 { animation: fadeUp 0.4s 0.1s ease both; }
-                .fade-up-3 { animation: fadeUp 0.4s 0.15s ease both; }
-                .fade-up-4 { animation: fadeUp 0.4s 0.2s ease both; }
-                .fade-up-5 { animation: fadeUp 0.4s 0.25s ease both; }
-                .scrollbar-hide::-webkit-scrollbar { display: none; }
-            `}</style> */}
+         
 
             <div className="max-w-7xl mx-auto px-4 py-6 lg:px-8">
 
@@ -533,7 +523,7 @@ export default function ProductPage() {
                         </div>
 
                         {/* Name */}
-                        <h1 className="text-heading text-2xl lg:text-3xl font-bold font-display leading-snug">
+                        <h1 className="text-heading text-2xl lg:text-3xl font-bold leading-snug">
                             {product.name}
                         </h1>
 
@@ -552,7 +542,7 @@ export default function ProductPage() {
 
                         {/* Price */}
                         <div className="flex items-end gap-3 flex-wrap">
-                            <span className="text-heading text-3xl font-black font-display">
+                            <span className="text-heading text-3xl font-black">
                                 ৳{effectivePrice?.toLocaleString()}
                             </span>
                             {originalPrice && (
@@ -714,7 +704,7 @@ export default function ProductPage() {
                             {/* Summary */}
                             <div className="flex items-center gap-8 p-6 bg-card rounded-2xl border border-accent-10 w-fit">
                                 <div className="text-center">
-                                    <p className="text-heading text-5xl font-black font-display">
+                                    <p className="text-heading text-5xl font-black">
                                         {product.averageRating?.toFixed(1) || "—"}
                                     </p>
                                     <StarRating rating={product.averageRating} size={18} />
