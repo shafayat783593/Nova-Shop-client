@@ -619,8 +619,11 @@ export default function ProductPage() {
                                 <Heart size={18} fill={wishlisted ? "currentColor" : "none"} />
                             </button> */}
 
-                               <WishlistButton productId={product._id} size="icon" />
-
+                            <WishlistButton
+                                productId={product._id}
+                                product={product}   
+                                size="icon"
+                            />
                             <button
                                 onClick={handleCopyLink}
                                 className="w-11 h-11 rounded-xl border border-accent-10 flex items-center justify-center text-body hover:text-heading hover:border-[var(--color-accent)] transition-all"

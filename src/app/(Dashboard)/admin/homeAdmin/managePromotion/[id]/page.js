@@ -83,7 +83,7 @@ export default function UpdatePromotion() {
         setError(null);
         try {
             await api.put(`/api/promotions/${id}`, data);
-            router.push("/admin/promotions");
+            router.push("/admin/homeAdmin/managePromotion");
         } catch (err) {
             const msg = err.response?.data?.message || "Failed to update promotion";
             const errs = err.response?.data?.errors;
@@ -100,7 +100,7 @@ export default function UpdatePromotion() {
                 {/* Header */}
                 <div>
                     <button
-                        onClick={() => router.push("/admin/promotions")}
+                        onClick={() => router.push("/admin/homeAdmin/managePromotion")}
                         className="flex items-center gap-1.5 text-body text-sm hover:text-heading transition-colors mb-4"
                     >
                         <ArrowLeft size={15} /> Back to Promotions
