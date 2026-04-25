@@ -11,6 +11,7 @@ export default function CreatePromotion() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
+
     const handleSubmit = async (data) => {
         setLoading(true);
         setError(null);
@@ -25,6 +26,7 @@ export default function CreatePromotion() {
             setLoading(false);
         }
     };
+
 
     return (
         <div className="min-h-screen bg-bg p-6 lg:p-8">

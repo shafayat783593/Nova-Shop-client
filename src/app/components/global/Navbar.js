@@ -13,6 +13,8 @@ import api from "@/app/lib/api";
 import Link from "next/link";
 import Image from "next/image";
 import { PromoTicker } from "./PromoTicker";
+import { useCart } from "@/app/context/Cartcontext";
+import { useWishlist } from "@/app/context/Wishlistcontext";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Static Config
@@ -313,7 +315,8 @@ export default function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-
+  const { itemCount: cartCount } = useCart();           // ← যোগ করো
+  const { itemCount: wishlistCount } = useWishlist();  
   const { theme, setTheme } = useTheme();
   const { user, isAuth, logOutUser, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
@@ -532,35 +535,40 @@ export default function Navbar() {
               </button>
             )}
 
-            {/* Wishlist */}
-            {isAuth && (
-              <div className="hidden sm:block relative">
-                <Link href="/wishlist" aria-label="Wishlist"
-                  className="w-[38px] h-[38px] rounded-xl bg-accent/20 text-heading
-                             flex items-center justify-center hover:bg-accent/30
-                             transition-all hover:scale-105 active:scale-95 no-underline">
-                  <Heart size={17} />
-                </Link>
-                {badgeCounts.wishlist > 0 && (
-                  <span className="nb-pulse absolute -top-1 -right-1 w-2.5 h-2.5
-                                   bg-danger rounded-full border-2 border-card" />
-                )}
-              </div>
-            )}
+            <div className="hidden sm:block relative">
+              <Link
+                href="/wishlist"
+                aria-label="Wishlist"
+                className="w-[38px] h-[38px] rounded-xl bg-accent/20 text-heading flex items-center justify-center hover:bg-accent/30 transition-all hover:scale-105 active:scale-95 no-underline"
+              >
+                <Heart size={17} />
+              </Link>
 
-            {/* Cart */}
+              {/* ফিক্স: এখানে ডিরেক্ট JSX এলিমেন্ট রিটার্ন করতে হবে */}
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-danger text-white text-[10px] font-black rounded-full flex items-center justify-center px-1 border-2 border-card">
+                  {wishlistCount}
+                </span>
+              )}
+            </div>
+          
+
+            
+
+          {/* Cart — isAuth check নেই, সবার জন্য */}
             <Link href="/productCart" aria-label="Cart"
               className="hidden sm:flex items-center gap-2 bg-primary hover:bg-secondary
-                         text-accent h-[38px] px-4 rounded-xl text-sm font-bold
-                         transition-all hover:scale-105 active:scale-95
-                         border-none cursor-pointer nb-font no-underline">
+             text-accent h-[38px] px-4 rounded-xl text-sm font-bold
+             transition-all hover:scale-105 active:scale-95
+             border-none cursor-pointer nb-font no-underline">
               <ShoppingCart size={17} />
               <span>Cart</span>
               <span className="bg-accent text-primary text-[10px] font-black
-                               w-5 h-5 rounded-full flex items-center justify-center">
-                {badgeCounts.cart || 0}
+                   w-5 h-5 rounded-full flex items-center justify-center">
+                {cartCount}    {/* ← badgeCounts.cart এর বদলে */}
               </span>
             </Link>
+
 
             {/* Profile / Auth */}
             <div className="hidden sm:block relative" ref={profileRef}>

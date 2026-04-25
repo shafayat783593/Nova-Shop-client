@@ -62,9 +62,6 @@ function Stars({ rating = 0 }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function ProductCard({ product, view = "grid" }) {
     const router = useRouter();
-    const [wished, setWished] = useState(false);
-    const [adding, setAdding] = useState(false);
-    const [added, setAdded] = useState(false);
 
     const price = product.discountedPrice ?? product.basePrice;
     const hasDiscount = product.discountedPrice && product.discountedPrice < product.basePrice;
@@ -72,20 +69,12 @@ function ProductCard({ product, view = "grid" }) {
         ? Math.round(((product.basePrice - product.discountedPrice) / product.basePrice) * 100)
         : null;
 
-    const handleAdd = (e) => {
-        e.stopPropagation();
-        setAdding(true);
-        setTimeout(() => { setAdding(false); setAdded(true); }, 600);
-        setTimeout(() => setAdded(false), 2200);
-    };
-
     if (view === "list") {
         return (
             <div
                 onClick={() => router.push(`/products/${product.slug}`)}
                 className="group bg-card rounded-2xl border border-accent-10 overflow-hidden flex gap-0 cursor-pointer hover:border-[var(--color-primary)]/40 hover:shadow-lg transition-all duration-300"
             >
-                {/* Image */}
                 <div className="w-44 flex-shrink-0 relative overflow-hidden bg-bg">
                     {product.images?.[0] ? (
                         <img src={product.images[0]} alt={product.name}
@@ -101,8 +90,6 @@ function ProductCard({ product, view = "grid" }) {
                         </span>
                     )}
                 </div>
-
-                {/* Info */}
                 <div className="flex-1 p-5 flex flex-col justify-between min-w-0">
                     <div className="space-y-2">
                         <span className="text-xs text-[var(--color-primary)] font-semibold capitalize bg-[var(--color-primary)]/10 px-2 py-0.5 rounded-full">
@@ -122,15 +109,19 @@ function ProductCard({ product, view = "grid" }) {
                             <span className="text-heading text-xl font-black">৳{price?.toLocaleString()}</span>
                             {hasDiscount && <span className="text-body text-sm line-through">৳{product.basePrice?.toLocaleString()}</span>}
                         </div>
-                        <div className="flex items-center gap-2">
-                            <button onClick={(e) => { e.stopPropagation(); setWished(v => !v); }}
-                                className={`p-2 rounded-xl border transition-all ${wished ? "border-red-300 text-red-400 bg-red-50/10" : "border-accent-10 text-body hover:text-red-400"}`}>
-                                <Heart size={15} fill={wished ? "currentColor" : "none"} />
-                            </button>
-                            <button onClick={handleAdd}
-                                className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-all ${added ? "bg-green-500 text-white" : "bg-[var(--color-primary)] hover:bg-[var(--color-secondary)] text-white"}`}>
-                                {added ? <><Check size={14} /> Added</> : <><ShoppingCart size={14} /> Add to Cart</>}
-                            </button>
+                        <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                            {/* ← stopPropagation wrapper — card click block করে */}
+                            <WishlistButton
+                                productId={product._id}
+                                product={product}
+                                size="icon"
+                            />
+                            <AddToCartButton
+                                productId={product._id}
+                                product={product}
+                                inStock={product.isActive}
+                                size="sm"
+                            />
                         </div>
                     </div>
                 </div>
@@ -138,6 +129,7 @@ function ProductCard({ product, view = "grid" }) {
         );
     }
 
+    // ── Grid view ──────────────────────────────────────────────────────────────
     return (
         <div
             onClick={() => router.push(`/products/${product.slug}`)}
@@ -147,34 +139,61 @@ function ProductCard({ product, view = "grid" }) {
             <div className="relative aspect-[4/3] overflow-hidden bg-bg">
                 {product.images?.[0] ? (
                     <img src={product.images[0]} alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500" />
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center">
                         <Package size={36} className="text-body opacity-20" />
                     </div>
                 )}
 
-                {/* Overlays */}
+                {/* Badges */}
                 <div className="absolute top-2 left-2 flex flex-col gap-1.5">
                     {discPct && (
-                        <span className="px-2 py-0.5 rounded-lg bg-green-500 text-white text-xs font-bold shadow">-{discPct}%</span>
+                        <span className="px-2 py-0.5 rounded-lg bg-green-500 text-white text-xs font-bold shadow">
+                            -{discPct}%
+                        </span>
                     )}
                     {product.isFeatured && (
-                        <span className="px-2 py-0.5 rounded-lg bg-amber-400 text-white text-xs font-bold shadow">⭐ Featured</span>
+                        <span className="px-2 py-0.5 rounded-lg bg-amber-400 text-white text-xs font-bold shadow">
+                            ⭐ Featured
+                        </span>
                     )}
                 </div>
 
-                {/* Wishlist */}
-             <WishlistButton productId={product._id} size="icon" />
-              
+                {/* Wishlist — top right, stops card click */}
+                <div
+                    className="absolute top-2 right-2"
+                    onClick={e => e.stopPropagation()}
+                >
+                    <WishlistButton
+                        productId={product._id}
+                        product={product}   // ← guest cart এর জন্য দরকার
+                        size="icon"
+                    />
+                </div>
 
-                {/* Quick add overlay */}
-                            <AddToCartButton productId={product._id} />
+                {/* Add to Cart — bottom, shows on hover */}
+                <div
+                    className="absolute bottom-0 left-0 right-0 p-2
+                                translate-y-full group-hover:translate-y-0
+                                transition-transform duration-300"
+                    onClick={e => e.stopPropagation()}
+                >
+                    <AddToCartButton
+                        productId={product._id}
+                        product={product}   // ← guest cart এর জন্য দরকার
+                        inStock={product.isActive}
+                        size="default"
+                        className="w-full justify-center"
+                    />
+                </div>
             </div>
 
             {/* Info */}
             <div className="p-4 flex flex-col flex-1">
-                <span className="text-xs text-[var(--color-primary)] font-semibold capitalize">{product.category}</span>
+                <span className="text-xs text-[var(--color-primary)] font-semibold capitalize">
+                    {product.category}
+                </span>
                 <h3 className="text-heading font-bold text-sm leading-snug mt-1 line-clamp-2 flex-1 group-hover:text-[var(--color-primary)] transition-colors">
                     {product.name}
                 </h3>
@@ -192,7 +211,6 @@ function ProductCard({ product, view = "grid" }) {
         </div>
     );
 }
-
 // ─────────────────────────────────────────────────────────────────────────────
 // FILTER SECTION (collapsible)
 // ─────────────────────────────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import {
     Tag, ShoppingCart, Gift, Truck,
 } from "lucide-react";
 import ProductPicker from "./ProductPicker";
+import CategoryPicker from "./CategoryPicker";
 
 const TYPES = [
     { value: "product", label: "Product Discount", icon: Tag, desc: "Apply to specific products or categories" },
@@ -257,13 +258,18 @@ export default function PromotionForm({
                 <div className="bg-card border border-accent-10 rounded-2xl p-6 space-y-5">
                     <SectionTitle>Scope</SectionTitle>
 
-                    <Field label="Categories" hint="Comma-separated: shoes, shirts">
-                        <input
-                            {...register("scope.categories")}
-                            placeholder="shoes, shirts, accessories"
-                            className={inputClass}
-                        />
-                    </Field>
+                    <Controller
+                        control={control}
+                        name="scope.categories"
+                        render={({ field }) => (
+                            <CategoryPicker
+                                label="Categories"
+                                value={field.value || []}
+                                onChange={field.onChange}
+                                placeholder="Search and select categories…"
+                            />
+                        )}
+                    />
 
                     {/* ── ProductPicker for scope.products ── */}
                     <Controller
