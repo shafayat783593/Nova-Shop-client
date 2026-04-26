@@ -1,12 +1,13 @@
 "use client";
 
 import {
-    createContext, useContext, useEffect, useReducer, useCallback, useRef
+    createContext, useContext, useEffect, useReducer, useCallback, useRef, useState
 } from "react";
 import api from "@/app/lib/api";
 import { useAuth } from "./AuthContext";
 
 const LS_KEY = "guest_cart";
+const LS_SELECTED_KEY = "cart_selected_items";
 
 function loadGuestCart() {
     if (typeof window === "undefined") return [];
@@ -19,6 +20,15 @@ function saveGuestCart(items) {
 function clearGuestCart() {
     if (typeof window !== "undefined") localStorage.removeItem(LS_KEY);
 }
+function loadSelectedIds() {
+    if (typeof window === "undefined") return null;
+    try { return JSON.parse(localStorage.getItem(LS_SELECTED_KEY) || "null"); }
+    catch { return null; }
+}
+function saveSelectedIds(ids) {
+    if (typeof window !== "undefined") localStorage.setItem(LS_SELECTED_KEY, JSON.stringify(ids));
+}
+
 function buildGuestCartObject(items) {
     const subtotal = items.reduce((s, i) => s + i.priceAtAdd * i.quantity, 0);
     return {
@@ -46,9 +56,118 @@ const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
     const [state, dispatch] = useReducer(reducer, initialState);
-    const { isAuth, loading: authLoading } = useAuth(); // ← authLoading নাও
+    const { isAuth, loading: authLoading } = useAuth();
     const prevIsAuth = useRef(null);
     const initialized = useRef(false);
+
+    // ── Selection state ────────────────────────────────────────────────────
+    // null = "all selected by default" mode, Set = explicit selection
+    const [selectedIds, setSelectedIds] = useState(null);
+
+    // When cart changes, sync selectedIds:
+    // New items auto-selected, removed items cleaned up
+    useEffect(() => {
+        if (!state.cart?.items?.length) {
+            setSelectedIds(null);
+            return;
+        }
+        const allIds = state.cart.items.map(i => i._id.toString());
+
+        setSelectedIds(prev => {
+            if (prev === null) {
+                // "all selected" mode — stay in it
+                return null;
+            }
+            // explicit mode — keep only valid ids, add any NEW items as selected
+            const prevSet = new Set(prev);
+            const newSet = new Set(allIds.filter(id => prevSet.has(id)));
+            // auto-select newly added items (ids not in prev)
+            allIds.forEach(id => { if (!prevSet.has(id)) newSet.add(id); });
+            return [...newSet];
+        });
+    }, [state.cart]);
+
+    // ── Computed: effective selected ids ──────────────────────────────────
+    const getSelectedIds = useCallback(() => {
+        if (!state.cart?.items?.length) return new Set();
+        if (selectedIds === null) {
+            return new Set(state.cart.items.map(i => i._id.toString()));
+        }
+        return new Set(selectedIds);
+    }, [state.cart, selectedIds]);
+
+    // ── Selection helpers ──────────────────────────────────────────────────
+    const toggleSelectItem = useCallback((itemId) => {
+        const allIds = state.cart?.items?.map(i => i._id.toString()) || [];
+        const currentSelected = getSelectedIds();
+
+        if (currentSelected.has(itemId)) {
+            currentSelected.delete(itemId);
+        } else {
+            currentSelected.add(itemId);
+        }
+        const newArr = [...currentSelected];
+        setSelectedIds(newArr);
+        saveSelectedIds(newArr);
+    }, [state.cart, getSelectedIds]);
+
+    const selectAll = useCallback(() => {
+        setSelectedIds(null); // back to "all" mode
+        saveSelectedIds(null);
+    }, []);
+
+    const deselectAll = useCallback(() => {
+        setSelectedIds([]);
+        saveSelectedIds([]);
+    }, []);
+
+    const isAllSelected = useCallback(() => {
+        if (!state.cart?.items?.length) return false;
+        if (selectedIds === null) return true;
+        const allIds = state.cart.items.map(i => i._id.toString());
+        return allIds.every(id => selectedIds.includes(id));
+    }, [state.cart, selectedIds]);
+
+    const isItemSelected = useCallback((itemId) => {
+        return getSelectedIds().has(itemId.toString());
+    }, [getSelectedIds]);
+
+    // ── Computed: selected cart summary ───────────────────────────────────
+    const selectedSummary = useCallback(() => {
+        if (!state.cart) return { subtotal: 0, discount: 0, shippingFee: 0, total: 0, selectedCount: 0, selectedItemCount: 0 };
+
+        const effectiveIds = getSelectedIds();
+        const selectedItems = (state.cart.items || []).filter(i => effectiveIds.has(i._id.toString()));
+
+        const subtotal = selectedItems.reduce((s, i) => s + (i.priceAtAdd || 0) * (i.quantity || 0), 0);
+        const discountedSubtotal = selectedItems.reduce((s, i) => s + (i.finalPrice || i.priceAtAdd || 0) * (i.quantity || 0), 0);
+        const discount = subtotal - discountedSubtotal;
+        const itemDiscount = discount > 0 ? discount : 0;
+
+        // Coupon discount proportional to selection
+        let couponDiscount = 0;
+        if (state.cart.appliedCoupon?.discountAmount && state.cart.items?.length) {
+            const selectionRatio = selectedItems.length / state.cart.items.length;
+            couponDiscount = (state.cart.appliedCoupon.discountAmount || 0) * selectionRatio;
+        }
+
+        const totalDiscount = itemDiscount + couponDiscount;
+
+        // Free shipping if original cart has free shipping, else 80
+        const shippingFee = selectedItems.length === 0 ? 0 : (state.cart.shippingFee === 0 ? 0 : 80);
+        const total = Math.max(0, discountedSubtotal - couponDiscount + shippingFee);
+        const selectedItemCount = selectedItems.reduce((s, i) => s + (i.quantity || 0), 0);
+
+        return {
+            subtotal,
+            discount: totalDiscount,
+            shippingFee,
+            total,
+            selectedCount: selectedItems.length,
+            selectedItemCount,
+            selectedItems,
+        };
+    }, [state.cart, getSelectedIds]);
 
     // ── fetchCart ──────────────────────────────────────────────────────────
     const fetchCart = useCallback(async (forceLoggedIn) => {
@@ -71,10 +190,10 @@ export function CartProvider({ children }) {
 
     // ── authLoading শেষ হলে একবার fetch করো ──────────────────────────────
     useEffect(() => {
-        if (authLoading) return;           // auth এখনো load হচ্ছে → wait
-        if (initialized.current) return;   // already done → skip
+        if (authLoading) return;
+        if (initialized.current) return;
         initialized.current = true;
-        fetchCart(isAuth);                 // isAuth এর সঠিক value দিয়ে call
+        fetchCart(isAuth);
     }, [authLoading, isAuth, fetchCart]);
 
     // ── login/logout হলে ───────────────────────────────────────────────────
@@ -90,10 +209,8 @@ export function CartProvider({ children }) {
         prevIsAuth.current = isAuth;
 
         if (isAuth && !wasAuth) {
-            // Login হলো → merge করে DB cart আনো
             mergeGuestToServer().then(() => fetchCart(true));
         } else if (!isAuth && wasAuth) {
-            // Logout হলো → guest cart দেখাও
             const items = loadGuestCart();
             items.length
                 ? dispatch({ type: "SET", payload: buildGuestCartObject(items) })
@@ -190,6 +307,15 @@ export function CartProvider({ children }) {
         }
     }, [isAuth]);
 
+    // ── removeSelectedItems ────────────────────────────────────────────────
+    const removeSelectedItems = useCallback(async () => {
+        const effectiveIds = getSelectedIds();
+        for (const id of effectiveIds) {
+            await removeItem(id);
+        }
+        setSelectedIds(null);
+    }, [getSelectedIds, removeItem]);
+
     // ── clearCart ──────────────────────────────────────────────────────────
     const clearCart = useCallback(async () => {
         if (isAuth) {
@@ -199,16 +325,47 @@ export function CartProvider({ children }) {
         dispatch({ type: "CLEAR" });
     }, [isAuth]);
 
+    // ── applyCoupon ────────────────────────────────────────────────────────
+    const applyCoupon = useCallback(async (code) => {
+        try {
+            const { data } = await api.post("/api/product/cart/coupon", { code });
+            dispatch({ type: "SET", payload: data.data });
+            return { success: true };
+        } catch (err) {
+            return { success: false, message: err.response?.data?.message || "Invalid coupon" };
+        }
+    }, []);
+
+    // ── removeCoupon ───────────────────────────────────────────────────────
+    const removeCoupon = useCallback(async () => {
+        try {
+            const { data } = await api.delete("/api/product/cart/coupon");
+            dispatch({ type: "SET", payload: data.data });
+        } catch { }
+    }, []);
+
     return (
         <CartContext.Provider value={{
             cart: state.cart,
-            loading: state.loading || authLoading, // auth load হওয়া পর্যন্ত cart loading দেখাও
+            loading: state.loading || authLoading,
             adding: state.adding,
             itemCount: state.cart?.totalItems || 0,
+            // selection
+            selectedIds,
+            isItemSelected,
+            isAllSelected,
+            toggleSelectItem,
+            selectAll,
+            deselectAll,
+            selectedSummary,
+            // actions
             addToCart,
             updateQty,
             removeItem,
+            removeSelectedItems,
             clearCart,
+            applyCoupon,
+            removeCoupon,
             refetch: fetchCart,
         }}>
             {children}
