@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/app/lib/api";
+import AddToCartButton from "../(Products)/components/AddToCartButton";
 
 function StarRating({ rating }) {
     return (
@@ -99,15 +100,7 @@ function ProductCard({ product }) {
                             </span>
                         )}
                     </div>
-                    <button
-                        onClick={() => router.push(`/products/${product.slug}`)}
-                        className="bg-primary hover:bg-secondary text-white text-xs font-bold px-3 py-2 rounded-xl transition-colors duration-200 flex items-center gap-1"
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
-                            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" />
-                        </svg>
-                        Add
-                    </button>
+                            <AddToCartButton productId={product._id}  />
                 </div>
             </div>
         </div>
