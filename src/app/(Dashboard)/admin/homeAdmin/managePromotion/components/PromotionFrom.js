@@ -1,11 +1,11 @@
 "use client";
 
 // ─── Shared PromotionForm ─────────────────────────────────────────────────────
-// Updated: scope products / bxgy products use ProductPicker (searchable multi-select)
+// Updated: added couponCode field + "coupon" type support
 
 import { useForm, Controller } from "react-hook-form";
 import {
-    Tag, ShoppingCart, Gift, Truck,
+    Tag, ShoppingCart, Gift, Truck, Ticket,
 } from "lucide-react";
 import ProductPicker from "./ProductPicker";
 import CategoryPicker from "./CategoryPicker";
@@ -15,6 +15,7 @@ const TYPES = [
     { value: "cart", label: "Cart Discount", icon: ShoppingCart, desc: "Apply when cart meets conditions" },
     { value: "bxgy", label: "Buy X Get Y", icon: Gift, desc: "Buy X items, get Y free" },
     { value: "free_shipping", label: "Free Shipping", icon: Truck, desc: "Waive shipping costs" },
+    { value: "coupon", label: "Coupon Code", icon: Ticket, desc: "Customer enters code at checkout" },
 ];
 
 const DISCOUNT_TYPES = [
@@ -64,6 +65,7 @@ export default function PromotionForm({
             name: "",
             description: "",
             type: "cart",
+            couponCode: "",          // ← NEW
             discountType: "percent",
             value: "",
             conditions: {
@@ -72,7 +74,6 @@ export default function PromotionForm({
                 firstOrderOnly: false,
                 paymentMethod: "",
             },
-            // scope.products / excludeProducts are now string[] of ObjectIds
             scope: {
                 categories: "",
                 products: [],
@@ -81,7 +82,7 @@ export default function PromotionForm({
             bxgy: {
                 buy: "",
                 get: "",
-                productIds: [],   // now array of ObjectIds
+                productIds: [],
             },
             usageLimit: "",
             perUserLimit: "",
@@ -97,15 +98,19 @@ export default function PromotionForm({
     const selectedType = watch("type");
     const selectedDiscountType = watch("discountType");
 
+    // Coupon type always shows the coupon code field;
+    // other types CAN also have a couponCode (optional manual-apply)
+    const isCouponType = selectedType === "coupon";
+
     const submit = (data) => {
         const clean = {
             ...data,
+            // uppercase couponCode before sending
+            couponCode: data.couponCode ? data.couponCode.trim().toUpperCase() : undefined,
             scope: {
-                // categories stays comma-separated string → split
                 categories: data.scope.categories
                     ? data.scope.categories.split(",").map((s) => s.trim()).filter(Boolean)
                     : [],
-                // products & excludeProducts are already arrays from ProductPicker
                 products: data.scope.products || [],
                 excludeProducts: data.scope.excludeProducts || [],
             },
@@ -156,7 +161,7 @@ export default function PromotionForm({
                 </Field>
 
                 <Field label="Promotion Type *">
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                         {TYPES.map(({ value, label, icon: Icon, desc }) => (
                             <label
                                 key={value}
@@ -181,6 +186,45 @@ export default function PromotionForm({
                 </Field>
             </div>
 
+            {/* ── Coupon Code ──────────────────────────────────────────────── */}
+            {/* Show when type=coupon OR admin wants to attach a code to any promo */}
+            {isCouponType && (
+                <div className="bg-card border border-accent-10 rounded-2xl p-6 space-y-5">
+                    <SectionTitle>Coupon Code</SectionTitle>
+
+                    <Field
+                        label="Coupon Code *"
+                        hint="Customers enter this at checkout. Auto-uppercased. Must be unique."
+                        error={errors.couponCode?.message}
+                    >
+                        <div className="relative">
+                            <Ticket
+                                size={15}
+                                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-primary)]"
+                            />
+                            <input
+                                {...register("couponCode", {
+                                    required: isCouponType ? "Coupon code is required" : false,
+                                    pattern: {
+                                        value: /^[A-Z0-9_-]{3,20}$/i,
+                                        message: "3–20 chars, letters/numbers/- only",
+                                    },
+                                })}
+                                placeholder="e.g. SUMMER20"
+                                className={`${inputClass} pl-10 uppercase font-mono tracking-widest`}
+                                style={{ textTransform: "uppercase" }}
+                            />
+                        </div>
+                    </Field>
+
+                    {/* Coupon-type promos support all discount types */}
+                    <div className="p-3 rounded-xl bg-[var(--color-primary)]/6 border border-[var(--color-primary)]/15 text-xs text-body">
+                        💡 Coupon type means customers <strong className="text-heading">manually enter</strong> this code.
+                        It won't auto-apply. Set discount below.
+                    </div>
+                </div>
+            )}
+
             {/* ── Discount ─────────────────────────────────────────────────── */}
             {selectedType !== "free_shipping" && (
                 <div className="bg-card border border-accent-10 rounded-2xl p-6 space-y-5">
@@ -202,7 +246,13 @@ export default function PromotionForm({
                                 <input
                                     type="number"
                                     min={0}
-                                    {...register("value", { min: { value: 0, message: "Must be positive" } })}
+                                    max={selectedDiscountType === "percent" ? 100 : undefined}
+                                    {...register("value", {
+                                        min: { value: 0, message: "Must be positive" },
+                                        max: selectedDiscountType === "percent"
+                                            ? { value: 100, message: "Max 100%" }
+                                            : undefined,
+                                    })}
                                     placeholder={selectedDiscountType === "percent" ? "e.g. 20" : "e.g. 150"}
                                     className={inputClass}
                                 />
@@ -218,26 +268,12 @@ export default function PromotionForm({
                     <SectionTitle>Buy X Get Y Settings</SectionTitle>
                     <div className="grid grid-cols-2 gap-5">
                         <Field label="Buy (X)">
-                            <input
-                                type="number"
-                                min={1}
-                                {...register("bxgy.buy")}
-                                placeholder="e.g. 2"
-                                className={inputClass}
-                            />
+                            <input type="number" min={1} {...register("bxgy.buy")} placeholder="e.g. 2" className={inputClass} />
                         </Field>
                         <Field label="Get (Y) free">
-                            <input
-                                type="number"
-                                min={1}
-                                {...register("bxgy.get")}
-                                placeholder="e.g. 1"
-                                className={inputClass}
-                            />
+                            <input type="number" min={1} {...register("bxgy.get")} placeholder="e.g. 1" className={inputClass} />
                         </Field>
                     </div>
-
-                    {/* ── ProductPicker for bxgy ── */}
                     <Controller
                         control={control}
                         name="bxgy.productIds"
@@ -271,7 +307,6 @@ export default function PromotionForm({
                         )}
                     />
 
-                    {/* ── ProductPicker for scope.products ── */}
                     <Controller
                         control={control}
                         name="scope.products"
@@ -285,7 +320,6 @@ export default function PromotionForm({
                         )}
                     />
 
-                    {/* ── ProductPicker for scope.excludeProducts ── */}
                     <Controller
                         control={control}
                         name="scope.excludeProducts"
@@ -305,7 +339,7 @@ export default function PromotionForm({
             <div className="bg-card border border-accent-10 rounded-2xl p-6 space-y-5">
                 <SectionTitle>Conditions</SectionTitle>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <Field label="Min Cart Value (৳)">
+                    <Field label="Min Cart Value (৳)" hint={isCouponType ? "Coupon only valid above this amount" : undefined}>
                         <input
                             type="number"
                             min={0}

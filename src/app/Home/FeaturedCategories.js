@@ -147,7 +147,7 @@ export default function FeaturedCategories() {
             .catch(() => setCategories([]))
             .finally(() => setLoading(false));
     }, []);
-console.log("Featured Categories:", categories);
+
     // Check scroll edges
     const checkEdges = useCallback(() => {
         const el = trackRef.current;
