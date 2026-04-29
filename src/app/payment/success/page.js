@@ -32,7 +32,7 @@ export default function PaymentSuccessPage() {
 
                 <div className="flex gap-3">
                     <button
-                        onClick={() => router.push("/orders")}
+                        onClick={() => router.push("/Myorder")}
                         className="flex-1 py-3 rounded-xl bg-[var(--color-primary)] hover:bg-[var(--color-secondary)] text-white font-bold text-sm flex items-center justify-center gap-2 transition-all"
                     >
                         <Package size={15} /> Track Order
