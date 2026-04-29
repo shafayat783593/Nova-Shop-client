@@ -1,559 +1,789 @@
 "use client";
 
-import { useState, useEff,ect, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import {
-    ChevronRight, MapPin, CreditCard, ClipboardList, CheckCircle2,
-    Plus, Loader2, Smartphone, ShieldCheck, Truck, Banknote,
-    ArrowLeft, ArrowRight, Package, Zap, Tag, Check,
-} from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { useParams, useRouter } from "next/navigation";
 import api from "@/app/lib/api";
-import { useCart } from "@/app/context/Cartcontext";
-import AddressCard from "../address/AddressCard";
-import AddressForm from "../address/AddressForm";
-
-// ─── Step indicator ───────────────────────────────────────────────────────────
-const STEPS = [
-    { id: 1, label: "Address", icon: MapPin },
-    { id: 2, label: "Payment", icon: CreditCard },
-    { id: 3, label: "Review", icon: ClipboardList },
-];
-
-function StepBar({ current }) {
+import {
+    ShoppingCart, Heart, Share2, Star, StarHalf,
+    ChevronLeft, ChevronRight, Shield, Truck, RefreshCw,
+    Plus, Minus, Tag, Zap, Package, ChevronDown,
+    Check, ArrowLeft, ZoomIn, Copy, MessageCircle,
+    Loader2
+} from "lucide-react";
+import AddToCartButton from "../../components/AddToCartButton";
+import WishlistButton from "../../components/Wishlistbutton";
+import c, { useCart } from "@/app/context/Cartcontext";
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+function Skeleton({ className = "" }) {
     return (
-        <div className="flex items-center justify-center gap-0 mb-8">
-            {STEPS.map((step, idx) => {
-                const done = current > step.id;
-                const active = current === step.id;
-                const Icon = step.icon;
-                return (
-                    <div key={step.id} className="flex items-center">
-                        <div className="flex flex-col items-center gap-1">
-                            <div className={`w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all
-                                ${done ? "bg-[var(--color-primary)] border-[var(--color-primary)]" : ""}
-                                ${active ? "border-[var(--color-primary)] bg-[var(--color-primary)]/10" : ""}
-                                ${!done && !active ? "border-accent-10 bg-card" : ""}
-                            `}>
-                                {done
-                                    ? <Check size={16} className="text-white" />
-                                    : <Icon size={15} className={active ? "text-[var(--color-primary)]" : "text-body"} />
-                                }
-                            </div>
-                            <span className={`text-xs font-semibold ${active ? "text-[var(--color-primary)]" : "text-body"}`}>
-                                {step.label}
-                            </span>
-                        </div>
-                        {idx < STEPS.length - 1 && (
-                            <div className={`w-16 sm:w-24 h-0.5 mx-2 mb-5 rounded transition-all
-                                ${current > step.id ? "bg-[var(--color-primary)]" : "bg-accent-10"}`}
-                            />
-                        )}
-                    </div>
-                );
-            })}
+        <div className={`relative overflow-hidden rounded-lg bg-[var(--accent-opacity)] ${className}`}>
+            <div
+                className="absolute inset-0"
+                style={{
+                    background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%)",
+                    animation: "shimmer 1.6s infinite",
+                }}
+            />
         </div>
     );
 }
 
-// ─── Order summary sidebar ────────────────────────────────────────────────────
-function OrderSidebar({ summary, cart }) {
-    const { subtotal, discount, shippingFee, total } = summary;
+function ProductSkeleton() {
     return (
-        <div className="bg-card border border-accent-10 rounded-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-accent-10">
-                <h3 className="text-heading font-bold text-sm flex items-center gap-2">
-                    <Package size={15} className="text-[var(--color-primary)]" />
-                    Order Summary
-                    <span className="ml-auto text-body text-xs font-normal">
-                        {summary.selectedCount} item{summary.selectedCount !== 1 ? "s" : ""}
-                    </span>
-                </h3>
-            </div>
+        <div className="max-w-7xl mx-auto px-4 py-8 lg:px-8">
+            <style>{`
+                @keyframes shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+            `}</style>
 
-            {/* Selected items */}
-            <div className="px-5 py-3 space-y-2.5 max-h-52 overflow-y-auto">
-                {summary.selectedItems?.map(item => (
-                    <div key={item._id} className="flex items-center gap-2.5">
-                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-bg border border-accent-10 flex-shrink-0">
-                            {item.imageSnapshot
-                                ? <img src={item.imageSnapshot} alt={item.nameSnapshot} className="w-full h-full object-cover" />
-                                : <div className="w-full h-full flex items-center justify-center"><Package size={14} className="text-body opacity-30" /></div>
-                            }
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-heading text-xs font-semibold line-clamp-1">{item.nameSnapshot}</p>
-                            <p className="text-body text-xs">x{item.quantity}</p>
-                        </div>
-                        <p className="text-heading text-xs font-bold flex-shrink-0">
-                            ৳{((item.finalPrice ?? item.priceAtAdd) * item.quantity).toLocaleString()}
-                        </p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                {/* Left: image */}
+                <div className="space-y-3">
+                    <Skeleton className="aspect-square w-full rounded-2xl" />
+                    <div className="flex gap-2">
+                        {[...Array(4)].map((_, i) => <Skeleton key={i} className="w-16 h-16 rounded-xl flex-shrink-0" />)}
                     </div>
-                ))}
-            </div>
+                </div>
 
-            {/* Totals */}
-            <div className="px-5 py-4 border-t border-accent-10 space-y-2">
-                <div className="flex justify-between text-sm">
-                    <span className="text-body">Subtotal</span>
-                    <span className="text-heading font-semibold">৳{subtotal?.toLocaleString()}</span>
-                </div>
-                {discount > 0 && (
-                    <div className="flex justify-between text-sm">
-                        <span className="text-green-600 flex items-center gap-1"><Zap size={11} /> Discount</span>
-                        <span className="text-green-600 font-semibold">-৳{discount?.toLocaleString()}</span>
+                {/* Right: info */}
+                <div className="space-y-4 py-2">
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-8 w-3/4" />
+                    <Skeleton className="h-6 w-1/2" />
+                    <Skeleton className="h-10 w-40" />
+                    <div className="space-y-2 pt-2">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-5/6" />
+                        <Skeleton className="h-4 w-4/6" />
                     </div>
-                )}
-                {cart?.appliedCoupon?.code && (
-                    <div className="flex justify-between text-sm">
-                        <span className="text-green-600 flex items-center gap-1"><Tag size={11} /> {cart.appliedCoupon.code}</span>
-                        <span className="text-green-600 font-semibold">-৳{cart.appliedCoupon.discountAmount?.toLocaleString()}</span>
+                    <div className="flex gap-3 pt-4">
+                        <Skeleton className="h-12 flex-1 rounded-xl" />
+                        <Skeleton className="h-12 flex-1 rounded-xl" />
+                        <Skeleton className="h-12 w-12 rounded-xl" />
                     </div>
-                )}
-                <div className="flex justify-between text-sm">
-                    <span className="text-body flex items-center gap-1"><Truck size={11} /> Shipping</span>
-                    {shippingFee === 0
-                        ? <span className="text-green-600 font-semibold">FREE</span>
-                        : <span className="text-heading font-semibold">৳{shippingFee}</span>
-                    }
-                </div>
-                <div className="flex justify-between text-base font-bold pt-2 border-t border-accent-10">
-                    <span className="text-heading">Total</span>
-                    <span className="text-heading">৳{total?.toLocaleString()}</span>
                 </div>
             </div>
         </div>
     );
 }
 
-// ─── Payment methods ──────────────────────────────────────────────────────────
-const PAYMENT_METHODS = [
-    {
-        id: "bkash",
-        label: "bKash",
-        desc: "Pay via bKash mobile banking",
-        icon: Smartphone,
-        color: "text-pink-500",
-        bg: "bg-pink-500/10 border-pink-500/30",
-    },
-    {
-        id: "sslcommerz",
-        label: "Card / SSL Commerce",
-        desc: "Visa, Mastercard, Nagad, Rocket",
-        icon: CreditCard,
-        color: "text-blue-500",
-        bg: "bg-blue-500/10 border-blue-500/30",
-    },
-    {
-        id: "cod",
-        label: "Cash on Delivery",
-        desc: "Pay when your order arrives",
-        icon: Banknote,
-        color: "text-green-600",
-        bg: "bg-green-500/10 border-green-500/30",
-    },
-];
+// ─── Star Rating ──────────────────────────────────────────────────────────────
+function StarRating({ rating = 0, size = 14 }) {
+    const full = Math.floor(rating);
+    const half = rating % 1 >= 0.4;
+    return (
+        <div className="flex items-center gap-0.5">
+            {[...Array(5)].map((_, i) => (
+                <span key={i} className={i < full ? "text-amber-400" : "text-[var(--accent-opacity)]"}>
+                    <Star size={size} fill={i < full ? "currentColor" : "none"} strokeWidth={1.5} />
+                </span>
+            ))}
+        </div>
+    );
+}
 
-// ─── STEP 1 — Address ─────────────────────────────────────────────────────────
-function StepAddress({ selectedAddressId, onSelect, onNext }) {
-    const [addresses, setAddresses] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [showForm, setShowForm] = useState(false);
-    const [editAddr, setEditAddr] = useState(null);
-    const [deleteId, setDeleteId] = useState(null);
+// ─── Image Gallery ────────────────────────────────────────────────────────────
+function ImageGallery({ images = [], name = "" }) {
+    const [active, setActive] = useState(0);
+    const [zoomed, setZoomed] = useState(false);
+    const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
+    const allImages = images.length ? images : ["/placeholder.png"];
 
-    const fetchAddresses = async () => {
-        try {
-            const { data } = await api.get("/api/addresses");
-            setAddresses(data.data);
-            // Auto-select default address
-            if (!selectedAddressId) {
-                const def = data.data.find(a => a.isDefault) || data.data[0];
-                if (def) onSelect(def._id);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
+    const handleMouseMove = (e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        setMousePos({
+            x: ((e.clientX - rect.left) / rect.width) * 100,
+            y: ((e.clientY - rect.top) / rect.height) * 100,
+        });
     };
 
-    useEffect(() => { fetchAddresses(); }, []);
-
-    const handleDelete = async (id) => {
-        setDeleteId(id);
-        try {
-            await api.delete(`/api/addresses/${id}`);
-            setAddresses(prev => prev.filter(a => a._id !== id));
-            if (selectedAddressId === id) onSelect(null);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setDeleteId(null);
-        }
-    };
-
-    const handleSetDefault = async (id) => {
-        try {
-            await api.patch(`/api/addresses/${id}/default`);
-            setAddresses(prev =>
-                prev.map(a => ({ ...a, isDefault: a._id === id }))
-            );
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="space-y-3">
-                {[1, 2].map(i => (
-                    <div key={i} className="h-28 rounded-2xl bg-[var(--accent-opacity)] animate-pulse" />
-                ))}
-            </div>
-        );
-    }
-
-    if (showForm || editAddr) {
-        return (
-            <div className="bg-card border border-accent-10 rounded-2xl p-5">
-                <h3 className="text-heading font-bold text-sm mb-5">
-                    {editAddr ? "Edit Address" : "Add New Address"}
-                </h3>
-                <AddressForm
-                    defaultValues={editAddr}
-                    onSuccess={(saved) => {
-                        fetchAddresses();
-                        setShowForm(false);
-                        setEditAddr(null);
-                        onSelect(saved._id);
-                    }}
-                    onCancel={() => { setShowForm(false); setEditAddr(null); }}
+    return (
+        <div className="space-y-3 sticky top-6">
+            {/* Main image */}
+            <div
+                className="relative aspect-square rounded-2xl overflow-hidden bg-card border border-accent-10 cursor-zoom-in group"
+                onMouseEnter={() => setZoomed(true)}
+                onMouseLeave={() => setZoomed(false)}
+                onMouseMove={handleMouseMove}
+            >
+                <img
+                    src={allImages[active]}
+                    alt={name}
+                    className="w-full h-full object-cover transition-transform duration-300"
+                    style={zoomed ? {
+                        transform: "scale(2)",
+                        transformOrigin: `${mousePos.x}% ${mousePos.y}%`,
+                    } : {}}
                 />
-            </div>
-        );
-    }
 
-    return (
-        <div className="space-y-4">
-            <div className="space-y-3">
-                {addresses.map(addr => (
-                    <AddressCard
-                        key={addr._id}
-                        address={addr}
-                        selectable
-                        selected={selectedAddressId === addr._id}
-                        onSelect={() => onSelect(addr._id)}
-                        onEdit={() => setEditAddr(addr)}
-                        onDelete={() => handleDelete(addr._id)}
-                        onSetDefault={() => handleSetDefault(addr._id)}
-                        deleteLoading={deleteId === addr._id}
-                    />
-                ))}
-            </div>
-
-            {/* Add new */}
-            <button
-                onClick={() => setShowForm(true)}
-                className="w-full py-3 rounded-2xl border-2 border-dashed border-accent-10 hover:border-[var(--color-primary)]/40 hover:bg-[var(--color-primary)]/3 transition-all text-body hover:text-[var(--color-primary)] text-sm font-semibold flex items-center justify-center gap-2"
-            >
-                <Plus size={16} /> Add New Address
-            </button>
-
-            {/* Next */}
-            <button
-                onClick={onNext}
-                disabled={!selectedAddressId}
-                className="w-full py-3.5 rounded-xl bg-[var(--color-primary)] hover:bg-[var(--color-secondary)] text-white font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-                Continue to Payment <ArrowRight size={16} />
-            </button>
-        </div>
-    );
-}
-
-// ─── STEP 2 — Payment ─────────────────────────────────────────────────────────
-function StepPayment({ selected, onSelect, onNext, onBack }) {
-    return (
-        <div className="space-y-4">
-            <div className="space-y-3">
-                {PAYMENT_METHODS.map(method => {
-                    const Icon = method.icon;
-                    const isActive = selected === method.id;
-                    return (
+                {/* Nav arrows */}
+                {allImages.length > 1 && (
+                    <>
                         <button
-                            key={method.id}
-                            onClick={() => onSelect(method.id)}
-                            className={`w-full p-4 rounded-2xl border-2 text-left transition-all
-                                ${isActive
-                                    ? `border-[var(--color-primary)] bg-[var(--color-primary)]/5`
-                                    : "border-accent-10 bg-card hover:border-[var(--color-primary)]/30"
+                            onClick={() => setActive((p) => (p - 1 + allImages.length) % allImages.length)}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-card/80 backdrop-blur flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow border border-accent-10"
+                        >
+                            <ChevronLeft size={16} className="text-heading" />
+                        </button>
+                        <button
+                            onClick={() => setActive((p) => (p + 1) % allImages.length)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-card/80 backdrop-blur flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow border border-accent-10"
+                        >
+                            <ChevronRight size={16} className="text-heading" />
+                        </button>
+                    </>
+                )}
+
+                {/* Zoom hint */}
+                <div className="absolute bottom-3 right-3 flex items-center gap-1 bg-card/70 backdrop-blur px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                    <ZoomIn size={12} className="text-body" />
+                    <span className="text-body text-xs">Hover to zoom</span>
+                </div>
+
+                {/* Dots */}
+                {allImages.length > 1 && (
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                        {allImages.map((_, i) => (
+                            <button
+                                key={i}
+                                onClick={() => setActive(i)}
+                                className={`rounded-full transition-all ${i === active ? "w-4 h-1.5 bg-[var(--color-primary)]" : "w-1.5 h-1.5 bg-white/50"}`}
+                            />
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Thumbnails */}
+            {allImages.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                    {allImages.map((img, i) => (
+                        <button
+                            key={i}
+                            onClick={() => setActive(i)}
+                            className={`w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all ${i === active
+                                ? "border-[var(--color-primary)] shadow-md"
+                                : "border-accent-10 opacity-60 hover:opacity-100"
                                 }`}
                         >
-                            <div className="flex items-center gap-3">
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${method.bg}`}>
-                                    <Icon size={18} className={method.color} />
-                                </div>
-                                <div className="flex-1">
-                                    <p className="text-heading font-bold text-sm">{method.label}</p>
-                                    <p className="text-body text-xs">{method.desc}</p>
-                                </div>
-                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
-                                    ${isActive ? "border-[var(--color-primary)]" : "border-accent-10"}`}
-                                >
-                                    {isActive && <div className="w-2 h-2 rounded-full bg-[var(--color-primary)]" />}
-                                </div>
-                            </div>
+                            <img src={img} alt="" className="w-full h-full object-cover" />
                         </button>
-                    );
-                })}
-            </div>
-
-            <div className="flex gap-3">
-                <button
-                    onClick={onBack}
-                    className="flex-1 py-3 rounded-xl border border-accent-10 text-heading text-sm font-semibold hover:bg-[var(--accent-opacity)] transition-colors flex items-center justify-center gap-2"
-                >
-                    <ArrowLeft size={15} /> Back
-                </button>
-                <button
-                    onClick={onNext}
-                    disabled={!selected}
-                    className="flex-1 py-3 rounded-xl bg-[var(--color-primary)] hover:bg-[var(--color-secondary)] text-white font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-40"
-                >
-                    Review Order <ArrowRight size={15} />
-                </button>
-            </div>
-
-            <p className="text-center text-body text-xs flex items-center justify-center gap-1.5">
-                <ShieldCheck size={12} className="text-[var(--color-primary)]" />
-                All payments are secured and encrypted
-            </p>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
 
-// ─── STEP 3 — Review & Place ──────────────────────────────────────────────────
-function StepReview({ address, paymentMethod, summary, cart, onBack, onPlace, placing }) {
-    const paymentLabel = PAYMENT_METHODS.find(p => p.id === paymentMethod)?.label || paymentMethod;
-    const [note, setNote] = useState("");
+// ─── Variant Selector ─────────────────────────────────────────────────────────
+function VariantSelector({ variants = [], selected, onSelect }) {
+    const sizes = [...new Set(variants.map((v) => v.size).filter(Boolean))];
+    const colors = [...new Set(variants.map((v) => v.color).filter(Boolean))];
 
-    return (
-        <div className="space-y-4">
+    const [activeSize, setActiveSize] = useState(selected?.size || sizes[0] || null);
+    const [activeColor, setActiveColor] = useState(selected?.color || colors[0] || null);
 
-            {/* Address summary */}
-            <div className="bg-card border border-accent-10 rounded-2xl p-4">
-                <p className="text-body text-xs font-bold uppercase tracking-wider mb-2">Delivering to</p>
-                {address && (
-                    <div>
-                        <p className="text-heading font-bold text-sm">{address.fullName}</p>
-                        <p className="text-body text-sm">
-                            {address.addressLine}, {address.area}, {address.district}, {address.division}
-                        </p>
-                        <p className="text-body text-sm">{address.phone}</p>
-                    </div>
-                )}
-            </div>
 
-            {/* Payment summary */}
-            <div className="bg-card border border-accent-10 rounded-2xl p-4">
-                <p className="text-body text-xs font-bold uppercase tracking-wider mb-2">Payment</p>
-                <p className="text-heading font-bold text-sm">{paymentLabel}</p>
-                {paymentMethod === "cod" && (
-                    <p className="text-body text-xs mt-0.5">Pay ৳{summary.total?.toLocaleString()} when order arrives</p>
-                )}
-            </div>
 
-            {/* Note */}
-            <div>
-                <label className="text-heading text-sm font-semibold block mb-1.5">
-                    Order Note <span className="text-body font-normal">(optional)</span>
-                </label>
-                <textarea
-                    value={note}
-                    onChange={e => setNote(e.target.value)}
-                    placeholder="Any special instructions for your order..."
-                    rows={2}
-                    className="w-full px-3.5 py-2.5 text-sm bg-bg border border-accent-10 rounded-xl text-heading placeholder:text-body outline-none focus:border-[var(--color-primary)] transition-all resize-none"
-                />
-            </div>
 
-            <div className="flex gap-3">
-                <button
-                    onClick={onBack}
-                    className="flex-1 py-3 rounded-xl border border-accent-10 text-heading text-sm font-semibold hover:bg-[var(--accent-opacity)] transition-colors flex items-center justify-center gap-2"
-                >
-                    <ArrowLeft size={15} /> Back
-                </button>
-                <button
-                    onClick={() => onPlace(note)}
-                    disabled={placing}
-                    className="flex-1 py-3 rounded-xl bg-[var(--color-primary)] hover:bg-[var(--color-secondary)] text-white font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-60"
-                >
-                    {placing
-                        ? <><Loader2 size={15} className="animate-spin" /> Placing...</>
-                        : <>Place Order ৳{summary.total?.toLocaleString()}</>
-                    }
-                </button>
-            </div>
-        </div>
-    );
-}
-
-// ─── Main Checkout Page ───────────────────────────────────────────────────────
-export default function CheckoutPage() {
-    const router = useRouter();
-    const { cart, selectedSummary } = useCart();
-
-    const [step, setStep] = useState(1);
-    const [selectedAddrId, setSelectedAddrId] = useState(null);
-    const [selectedAddress, setSelectedAddress] = useState(null);
-    const [paymentMethod, setPaymentMethod] = useState("");
-    const [placing, setPlacing] = useState(false);
-    const [error, setError] = useState(null);
-
-    const summary = selectedSummary();
-
-    // Redirect if cart is empty
-    useEffect(() => {
-        if (cart !== null && (!cart?.items?.length || summary.selectedCount === 0)) {
-            router.replace("/cart");
-        }
-    }, [cart]);
-
-    // Fetch full address object when id changes
-    useEffect(() => {
-        if (!selectedAddrId) return;
-        api.get("/api/addresses")
-            .then(({ data }) => {
-                const addr = data.data.find(a => a._id === selectedAddrId);
-                setSelectedAddress(addr || null);
-            })
-            .catch(console.error);
-    }, [selectedAddrId]);
-
-    // ── Place order ────────────────────────────────────────────────────────
-    const handlePlaceOrder = async (note) => {
-        setPlacing(true);
-        setError(null);
-        try {
-            // 1. Place order
-            const { data } = await api.post("/api/orders", {
-                shippingAddressId: selectedAddrId,
-                paymentMethod,
-                customerNote: note,
-            });
-
-            const orderId = data.data.orderId;
-
-            // 2. Redirect based on payment method
-            if (paymentMethod === "cod") {
-                router.push(`/payment/success?orderId=${orderId}`);
-                return;
-            }
-
-            if (paymentMethod === "bkash") {
-                const { data: bkash } = await api.post("/api/payments/bkash/create", { orderId });
-                window.location.href = bkash.data.bkashURL;
-                return;
-            }
-
-            if (paymentMethod === "sslcommerz") {
-                const { data: ssl } = await api.post("/api/payments/sslcommerz/init", { orderId });
-                window.location.href = ssl.data.gatewayURL;
-                return;
-            }
-        } catch (err) {
-            setError(err.response?.data?.message || "Failed to place order. Please try again.");
-            setPlacing(false);
+    const handleSizeChange = (size) => {
+        setActiveSize(size);
+        // নতুন size এর সাথে match করে প্রথম available variant খোঁজো
+        const matchedVariant = variants.find(v => v.size === size);
+        if (matchedVariant) {
+            setActiveColor(matchedVariant.color);
+            onSelect(matchedVariant);
         }
     };
 
-    if (!cart) return null;
+    const handleColorChange = (color) => {
+        setActiveColor(color);
+        const matchedVariant = variants.find(v => v.color === color);
+        if (matchedVariant) {
+            setActiveSize(matchedVariant.size);
+            onSelect(matchedVariant);
+        }
+    };
+
+
+
+
+    const getVariant = (size, color) =>
+        variants.find((v) => v.size === size && v.color === color);
+
+    const handleChange = (size, color) => {
+        const v = getVariant(size, color);
+        if (v) onSelect(v);
+    };
+
+    const isAvailable = (size, color) => {
+        // শুধু check করো ওই color/size এর কোনো variant আছে কিনা
+        // অন্য dimension ignore করো
+        if (size && !color) {
+            return variants.some(v => v.size === size && v.stock > 0);
+        }
+        if (color && !size) {
+            return variants.some(v => v.color === color && v.stock > 0);
+        }
+        return variants.some(v => v.size === size && v.color === color && v.stock > 0);
+    };
+    return (
+        <div className="space-y-4">
+            {sizes.length > 0 && (
+                <div>
+                    <p className="text-heading text-sm font-semibold mb-2">
+                        Size: <span className="text-[var(--color-primary)]">{activeSize}</span>
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                        {sizes.map((size) => {
+                            const avail = isAvailable(size, null);
+                            return (
+                                <button
+                                    key={size}
+                                    onClick={() => handleSizeChange(size)}
+                                    disabled={!avail}
+                                    className={`px-4 py-1.5 rounded-xl text-sm font-semibold border transition-all ${activeSize === size
+                                        ? "border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+                                        : avail
+                                            ? "border-accent-10 text-heading hover:border-[var(--color-secondary)]"
+                                            : "border-accent-10 text-body opacity-40 cursor-not-allowed line-through"
+                                        }`}
+                                >
+                                    {size}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {colors.length > 0 && (
+                <div>
+                    <p className="text-heading text-sm font-semibold mb-2">
+                        Color: <span className="text-[var(--color-primary)]">{activeColor}</span>
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                        {colors.map((color) => {
+                            const avail = isAvailable(null, color);
+                            return (
+                                <button
+                                    key={color}
+                                    onClick={() => handleColorChange(color)}
+
+                                    disabled={!avail}
+                                    className={`px-4 py-1.5 rounded-xl text-sm font-medium border transition-all ${activeColor === color
+                                        ? "border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+                                        : avail
+                                            ? "border-accent-10 text-heading hover:border-[var(--color-secondary)]"
+                                            : "border-accent-10 text-body opacity-40 cursor-not-allowed"
+                                        }`}
+                                >
+                                    {color}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── Promo Badge ──────────────────────────────────────────────────────────────
+function PromoBadge({ promo }) {
+    const labels = {
+        product: "Product Deal",
+        cart: "Cart Offer",
+        bxgy: `Buy ${promo.bxgy?.buy} Get ${promo.bxgy?.get}`,
+        free_shipping: "Free Shipping",
+    };
+    const discountLabel =
+        promo.discountType === "percent" ? `${promo.value}% OFF`
+            : promo.discountType === "fixed" ? `৳${promo.value} OFF`
+                : promo.type === "free_shipping" ? "FREE SHIPPING"
+                    : promo.type === "bxgy" ? labels.bxgy
+                        : "OFFER";
+
+    return (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20">
+            <Zap size={14} className="text-[var(--color-primary)] flex-shrink-0" />
+            <div className="min-w-0">
+                <span className="text-[var(--color-primary)] text-xs font-bold">{discountLabel}</span>
+                {promo.name && <span className="text-body text-xs ml-1.5">· {promo.name}</span>}
+                {promo.conditions?.minCartValue && (
+                    <span className="text-body text-xs ml-1">on ৳{promo.conditions.minCartValue}+ cart</span>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// ─── Quantity Picker ──────────────────────────────────────────────────────────
+function QtyPicker({ value, onChange, max = 99 }) {
+    return (
+        <div className="flex items-center gap-0 rounded-xl border border-accent-10 overflow-hidden w-fit">
+            <button
+                onClick={() => onChange(Math.max(1, value - 1))}
+                className="w-10 h-10 flex items-center justify-center hover:bg-[var(--accent-opacity)] transition-colors text-heading"
+            >
+                <Minus size={14} />
+            </button>
+            <span className="w-10 text-center text-heading text-sm font-bold border-x border-accent-10">
+                {value}
+            </span>
+            <button
+                onClick={() => onChange(Math.min(max, value + 1))}
+                className="w-10 h-10 flex items-center justify-center hover:bg-[var(--accent-opacity)] transition-colors text-heading"
+            >
+                <Plus size={14} />
+            </button>
+        </div>
+    );
+}
+
+// ─── Review Card ──────────────────────────────────────────────────────────────
+function ReviewCard({ review }) {
+    return (
+        <div className="bg-card rounded-2xl p-5 border border-accent-10 space-y-3">
+            <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-[var(--color-primary)]/15 flex items-center justify-center text-[var(--color-primary)] font-bold text-sm">
+                        {(review.user?.name || "U")[0].toUpperCase()}
+                    </div>
+                    <div>
+                        <p className="text-heading text-sm font-semibold">{review.user?.name || "Customer"}</p>
+                        <p className="text-body text-xs">{new Date(review.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</p>
+                    </div>
+                </div>
+                <StarRating rating={review.rating} size={13} />
+            </div>
+            <p className="text-body text-sm leading-relaxed">{review.comment}</p>
+            {review.images?.length > 0 && (
+                <div className="flex gap-2">
+                    {review.images.map((img, i) => (
+                        <img key={i} src={img} alt="" className="w-14 h-14 rounded-lg object-cover border border-accent-10" />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+export default function ProductPage() {
+    const { slug } = useParams();
+    console.log("Product slug:..................................", slug);
+    const router = useRouter();
+
+    const [product, setProduct] = useState(null);
+    const [promotions, setPromotions] = useState([]);
+    const [reviews, setReviews] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const [selectedVariant, setSelectedVariant] = useState(null);
+    const [qty, setQty] = useState(1);
+    const [wishlisted, setWishlisted] = useState(false);
+    const [addedToCart, setAddedToCart] = useState(false);
+    const [showFullDesc, setShowFullDesc] = useState(false);
+
+    const [copied, setCopied] = useState(false);
+    const [activeTab, setActiveTab] = useState("description");
+    const [buyingNow, setBuyingNow] = useState(false);
+    const { addToCart } = useCart();
+
+    useEffect(() => {
+        if (!slug) return;
+        (async () => {
+            setLoading(true);
+            try {
+                const [prodRes, promoRes] = await Promise.all([
+                    api.get(`/api/products/${slug}`),
+                    api.get("/api/promotions/active"),
+                ]);
+                const p = prodRes.data.data;
+                setProduct(p);
+
+                // Set default variant
+                if (p.hasVariants && p.variants?.length) {
+                    setSelectedVariant(p.variants[0]);
+                }
+
+                // Filter relevant promotions
+                const allPromos = promoRes.data.data || [];
+                const relevant = allPromos.filter((promo) => {
+                    if (promo.type === "cart" || promo.type === "free_shipping") return true;
+                    if (promo.type === "product") {
+                        const inScope = !promo.scope?.products?.length || promo.scope.products.some((id) => id === p._id || id?._id === p._id);
+                        const inCat = !promo.scope?.categories?.length || promo.scope.categories.includes(p.category);
+                        const excluded = promo.scope?.excludeProducts?.some((id) => id === p._id || id?._id === p._id);
+                        return (inScope || inCat) && !excluded;
+                    }
+                    if (promo.type === "bxgy") {
+                        return promo.bxgy?.productIds?.some((id) => id === p._id || id?._id === p._id);
+                    }
+                    return false;
+                });
+                setPromotions(relevant);
+
+                // Fetch reviews
+                try {
+                    const revRes = await api.get(`/api/reviews/${p._id}?limit=6`);
+                    setReviews(revRes.data.data || []);
+                } catch { }
+
+            } catch {
+                // handle 404
+            } finally {
+                setLoading(false);
+            }
+        })();
+    }, [slug]);
+
+
+    const handleBuyNow = async () => {
+        if (!inStock) return;
+        setBuyingNow(true);
+        try {
+            const result = await addToCart({
+                productId: product._id,
+                variantId: selectedVariant?._id || undefined,
+                quantity: qty,
+                product,
+            });
+            if (result?.success) {
+                router.push("/checkout");
+            } else {
+                alert(result?.message || "Cart এ add করা যায়নি");
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setBuyingNow(false);
+        }
+    };
+    const handleAddToCart = () => {
+        setAddedToCart(true);
+        setTimeout(() => setAddedToCart(false), 2000);
+        // TODO: dispatch to cart store
+    };
+
+    const handleCopyLink = () => {
+        navigator.clipboard.writeText(window.location.href);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    if (loading) return <ProductSkeleton />;
+    if (!product) return (
+        <div className="min-h-screen bg-bg flex items-center justify-center">
+            <div className="text-center space-y-3">
+                <Package size={48} className="mx-auto text-body opacity-30" />
+                <p className="text-heading font-semibold">Product not found</p>
+                <button onClick={() => router.back()} className="text-[var(--color-primary)] text-sm hover:underline flex items-center gap-1 mx-auto">
+                    <ArrowLeft size={14} /> Go back
+                </button>
+            </div>
+        </div>
+    );
+
+    const effectivePrice = selectedVariant
+        ? selectedVariant.price
+        : product.discountedPrice ?? product.basePrice;
+
+    const originalPrice = selectedVariant ? null : product.discountedPrice ? product.basePrice : null;
+
+    const discountPercent = originalPrice
+        ? Math.round(((originalPrice - effectivePrice) / originalPrice) * 100)
+        : null;
+
+    const stock = selectedVariant ? selectedVariant.stock : null;
+    const inStock = stock === null ? true : stock > 0;
+    const lowStock = stock !== null && stock > 0 && stock <= 5;
+
+    const allImages = [...(product.images || []), ...(product.gallery || [])].filter(Boolean);
 
     return (
         <div className="min-h-screen bg-bg">
-            <div className="max-w-5xl mx-auto px-4 lg:px-8 py-8">
+         
 
-                {/* Header */}
-                <div className="flex items-center gap-3 mb-8">
-                    <button
-                        onClick={() => router.push("/cart")}
-                        className="text-body hover:text-heading transition-colors"
-                    >
-                        <ArrowLeft size={20} />
-                    </button>
-                    <h1 className="text-heading text-xl lg:text-2xl font-black">Checkout</h1>
-                </div>
+            <div className="max-w-7xl mx-auto px-4 py-6 lg:px-8">
 
-                <StepBar current={step} />
+                {/* Breadcrumb */}
+                <nav className="flex items-center gap-2 text-body text-xs mb-6 fade-up">
+                    <button onClick={() => router.push("/")} className="hover:text-[var(--color-primary)] transition-colors">Home</button>
+                    <ChevronRight size={12} />
+                    <button onClick={() => router.push(`/products?category=${product.category}`)} className="hover:text-[var(--color-primary)] transition-colors capitalize">{product.category}</button>
+                    <ChevronRight size={12} />
+                    <span className="text-heading truncate max-w-[200px]">{product.name}</span>
+                </nav>
 
-                {/* Error banner */}
-                {error && (
-                    <div className="mb-6 p-4 rounded-2xl bg-[var(--color-danger)]/8 border border-[var(--color-danger)]/20 text-[var(--color-danger)] text-sm font-semibold">
-                        {error}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 xl:gap-14">
+
+                    {/* ── Left: Gallery ── */}
+                    <div className="fade-up-1">
+                        <ImageGallery images={allImages} name={product.name} />
                     </div>
-                )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* ── Right: Product Info ── */}
+                    <div className="space-y-5 fade-up-2">
 
-                    {/* ── Main content ── */}
-                    <div className="lg:col-span-2">
-                        <div className="bg-card border border-accent-10 rounded-2xl p-5 sm:p-6">
-
-                            {step === 1 && (
-                                <>
-                                    <h2 className="text-heading font-bold text-base mb-5 flex items-center gap-2">
-                                        <MapPin size={16} className="text-[var(--color-primary)]" />
-                                        Delivery Address
-                                    </h2>
-                                    <StepAddress
-                                        selectedAddressId={selectedAddrId}
-                                        onSelect={setSelectedAddrId}
-                                        onNext={() => setStep(2)}
-                                    />
-                                </>
+                        {/* Badges row */}
+                        <div className="flex flex-wrap items-center gap-2">
+                            {product.isFeatured && (
+                                <span className="px-2.5 py-1 rounded-full bg-amber-400/15 text-amber-600 text-xs font-bold uppercase tracking-wider">
+                                    ⭐ Featured
+                                </span>
                             )}
-
-                            {step === 2 && (
-                                <>
-                                    <h2 className="text-heading font-bold text-base mb-5 flex items-center gap-2">
-                                        <CreditCard size={16} className="text-[var(--color-primary)]" />
-                                        Payment Method
-                                    </h2>
-                                    <StepPayment
-                                        selected={paymentMethod}
-                                        onSelect={setPaymentMethod}
-                                        onNext={() => setStep(3)}
-                                        onBack={() => setStep(1)}
-                                    />
-                                </>
+                            {!inStock && (
+                                <span className="px-2.5 py-1 rounded-full bg-red-500/15 text-red-500 text-xs font-bold uppercase tracking-wider">
+                                    Out of Stock
+                                </span>
                             )}
+                            {lowStock && (
+                                <span className="px-2.5 py-1 rounded-full bg-orange-400/15 text-orange-500 text-xs font-bold uppercase tracking-wider">
+                                    Only {stock} left!
+                                </span>
+                            )}
+                            <span className="px-2.5 py-1 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] text-xs font-semibold capitalize">
+                                {product.category}
+                            </span>
+                        </div>
 
-                            {step === 3 && (
-                                <>
-                                    <h2 className="text-heading font-bold text-base mb-5 flex items-center gap-2">
-                                        <ClipboardList size={16} className="text-[var(--color-primary)]" />
-                                        Review Your Order
-                                    </h2>
-                                    <StepReview
-                                        address={selectedAddress}
-                                        paymentMethod={paymentMethod}
-                                        summary={summary}
-                                        cart={cart}
-                                        onBack={() => setStep(2)}
-                                        onPlace={handlePlaceOrder}
-                                        placing={placing}
-                                    />
-                                </>
+                        {/* Name */}
+                        <h1 className="text-heading text-2xl lg:text-3xl font-bold leading-snug">
+                            {product.name}
+                        </h1>
+
+                        {/* Rating row */}
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <StarRating rating={product.averageRating} size={16} />
+                            <span className="text-heading font-bold text-sm">{product.averageRating?.toFixed(1) || "0.0"}</span>
+                            <span className="text-body text-sm">({product.totalReviews || 0} reviews)</span>
+                            <button
+                                onClick={() => setActiveTab("reviews")}
+                                className="text-[var(--color-primary)] text-sm hover:underline flex items-center gap-1"
+                            >
+                                <MessageCircle size={13} /> Write a review
+                            </button>
+                        </div>
+
+                        {/* Price */}
+                        <div className="flex items-end gap-3 flex-wrap">
+                            <span className="text-heading text-3xl font-black">
+                                ৳{effectivePrice?.toLocaleString()}
+                            </span>
+                            {originalPrice && (
+                                <span className="text-body text-lg line-through">
+                                    ৳{originalPrice?.toLocaleString()}
+                                </span>
+                            )}
+                            {discountPercent && (
+                                <span className="px-2.5 py-1 rounded-full bg-green-500/15 text-green-600 text-sm font-bold">
+                                    -{discountPercent}%
+                                </span>
                             )}
                         </div>
+
+                        {/* Active Promotions */}
+                        {promotions.length > 0 && (
+                            <div className="space-y-2">
+                                <p className="text-body text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                                    <Tag size={12} /> Available Offers
+                                </p>
+                                <div className="space-y-2">
+                                    {promotions.map((promo) => (
+                                        <PromoBadge key={promo._id} promo={promo} />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Divider */}
+                        <hr className="border-accent-10" />
+
+                        {/* Variants */}
+                        {product.hasVariants && product.variants?.length > 0 && (
+                            <div className="fade-up-3">
+                                <VariantSelector
+                                    variants={product.variants}
+                                    selected={selectedVariant}
+                                    onSelect={setSelectedVariant}
+                                />
+                                {selectedVariant && (
+                                    <p className="text-body text-xs mt-2">
+                                        SKU: <span className="text-heading font-mono">{selectedVariant.sku || "—"}</span>
+                                        {selectedVariant.stock > 0 && (
+                                            <span className="ml-3 text-green-600">✓ {selectedVariant.stock} in stock</span>
+                                        )}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Qty + CTA */}
+                        <div className="flex items-center gap-3 flex-wrap fade-up-4">
+                            <QtyPicker
+                                value={qty}
+                                onChange={setQty}
+                                max={stock ?? 99}
+                            />
+
+                            <AddToCartButton productId={product._id} variantId={selectedVariant?._id} qty={qty} />
+                           
+
+
+
+                            <button
+                                onClick={() => {
+                                    if (!inStock) return;
+                                    const params = new URLSearchParams({
+                                        mode: "buynow",
+                                        productId: product._id,
+                                        qty: String(qty),
+                                    });
+                                    if (selectedVariant?._id) params.set("variantId", selectedVariant._id);
+                                    router.push(`/checkout?${params.toString()}`);
+                                }}
+                                disabled={!inStock}
+                                className="flex-1 min-w-[140px] h-11 rounded-xl font-bold text-sm border-2 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                Buy Now
+                            </button>
+                        
+
+
+
+
+{/* 
+                        {showBuyNow && (
+                            <BuyNowModal
+                                product={product}
+                                selectedVariant={selectedVariant}
+                                qty={qty}
+                                onClose={() => setShowBuyNow(false)}
+                            />
+                        )} */}
+
+
+
+                            {/* <button
+                                onClick={handleBuyNow}
+                                disabled={!inStock || buyingNow}
+                                className="flex-1 min-w-[140px] h-11 rounded-xl font-bold text-sm border-2 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {buyingNow
+                                    ? <><Loader2 size={15} className="animate-spin" /> Adding...</>
+                                    : "Buy Now"
+                                }
+                            </button> */}
+
+                            <WishlistButton
+                                productId={product._id}
+                                product={product}   
+                                size="icon"
+                            />
+                            <button
+                                onClick={handleCopyLink}
+                                className="w-11 h-11 rounded-xl border border-accent-10 flex items-center justify-center text-body hover:text-heading hover:border-[var(--color-accent)] transition-all"
+                                title="Copy link"
+                            >
+                                {copied ? <Check size={16} className="text-green-500" /> : <Share2 size={16} />}
+                            </button>
+                        </div>
+
+                        {/* Trust badges */}
+                        <div className="grid grid-cols-3 gap-3 fade-up-5">
+                            {[
+                                { icon: Truck, label: "Free Delivery", sub: "On orders ৳500+" },
+                                { icon: RefreshCw, label: "Easy Return", sub: "7-day policy" },
+                                { icon: Shield, label: "Secure Pay", sub: "100% protected" },
+                            ].map(({ icon: Icon, label, sub }) => (
+                                <div key={label} className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-card border border-accent-10 text-center">
+                                    <Icon size={18} className="text-[var(--color-primary)]" />
+                                    <p className="text-heading text-xs font-semibold">{label}</p>
+                                    <p className="text-body text-xs">{sub}</p>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Tags */}
+                        {product.tags?.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                                {product.tags.map((tag) => (
+                                    <span key={tag} className="px-2.5 py-1 rounded-full bg-[var(--accent-opacity)] text-body text-xs">
+                                        #{tag}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* ── Tabs: Description / Reviews ── */}
+                <div className="mt-14 fade-up">
+                    <div className="flex gap-1 border-b border-accent-10 mb-8">
+                        {["description", "reviews"].map((tab) => (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                className={`px-6 py-3 text-sm font-bold capitalize transition-all border-b-2 -mb-px ${activeTab === tab
+                                    ? "border-[var(--color-primary)] text-[var(--color-primary)]"
+                                    : "border-transparent text-body hover:text-heading"
+                                    }`}
+                            >
+                                {tab}
+                                {tab === "reviews" && product.totalReviews > 0 && (
+                                    <span className="ml-1.5 text-xs font-normal opacity-70">({product.totalReviews})</span>
+                                )}
+                            </button>
+                        ))}
                     </div>
 
-                    {/* ── Sidebar ── */}
-                    <div className="lg:sticky lg:top-6 lg:self-start">
-                        <OrderSidebar summary={summary} cart={cart} />
-                    </div>
+                    {/* Description */}
+                    {activeTab === "description" && (
+                        <div className="max-w-3xl fade-up">
+                            <div
+                                className={`text-body text-sm leading-relaxed prose prose-sm max-w-none overflow-hidden transition-all ${showFullDesc ? "" : "max-h-40"
+                                    }`}
+                                style={{ maskImage: showFullDesc ? "none" : "linear-gradient(to bottom, black 60%, transparent 100%)" }}
+                            >
+                                {product.description}
+                            </div>
+                            <button
+                                onClick={() => setShowFullDesc((v) => !v)}
+                                className="mt-3 flex items-center gap-1 text-[var(--color-primary)] text-sm font-semibold hover:underline"
+                            >
+                                {showFullDesc ? "Show less" : "Read more"}
+                                <ChevronDown size={14} className={`transition-transform ${showFullDesc ? "rotate-180" : ""}`} />
+                            </button>
+                        </div>
+                    )}
 
+                    {/* Reviews */}
+                    {activeTab === "reviews" && (
+                        <div className="space-y-6 fade-up">
+                            {/* Summary */}
+                            <div className="flex items-center gap-8 p-6 bg-card rounded-2xl border border-accent-10 w-fit">
+                                <div className="text-center">
+                                    <p className="text-heading text-5xl font-black">
+                                        {product.averageRating?.toFixed(1) || "—"}
+                                    </p>
+                                    <StarRating rating={product.averageRating} size={18} />
+                                    <p className="text-body text-xs mt-1">{product.totalReviews} reviews</p>
+                                </div>
+                            </div>
+
+                            {reviews.length === 0 ? (
+                                <div className="text-center py-12 text-body">
+                                    <MessageCircle size={36} className="mx-auto mb-3 opacity-30" />
+                                    <p>No reviews yet. Be the first!</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {reviews.map((r) => <ReviewCard key={r._id} review={r} />)}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

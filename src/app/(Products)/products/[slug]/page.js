@@ -7,11 +7,12 @@ import {
     ShoppingCart, Heart, Share2, Star, StarHalf,
     ChevronLeft, ChevronRight, Shield, Truck, RefreshCw,
     Plus, Minus, Tag, Zap, Package, ChevronDown,
-    Check, ArrowLeft, ZoomIn, Copy, MessageCircle
+    Check, ArrowLeft, ZoomIn, Copy, MessageCircle,
+    Loader2
 } from "lucide-react";
 import AddToCartButton from "../../components/AddToCartButton";
 import WishlistButton from "../../components/Wishlistbutton";
-
+import c, { useCart } from "@/app/context/Cartcontext";
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 function Skeleton({ className = "" }) {
     return (
@@ -383,8 +384,11 @@ export default function ProductPage() {
     const [wishlisted, setWishlisted] = useState(false);
     const [addedToCart, setAddedToCart] = useState(false);
     const [showFullDesc, setShowFullDesc] = useState(false);
+
     const [copied, setCopied] = useState(false);
     const [activeTab, setActiveTab] = useState("description");
+    const [buyingNow, setBuyingNow] = useState(false);
+    const { addToCart } = useCart();
 
     useEffect(() => {
         if (!slug) return;
@@ -434,6 +438,28 @@ export default function ProductPage() {
         })();
     }, [slug]);
 
+
+    const handleBuyNow = async () => {
+        if (!inStock) return;
+        setBuyingNow(true);
+        try {
+            const result = await addToCart({
+                productId: product._id,
+                variantId: selectedVariant?._id || undefined,
+                quantity: qty,
+                product,
+            });
+            if (result?.success) {
+                router.push("/checkout");
+            } else {
+                alert(result?.message || "Cart এ add করা যায়নি");
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setBuyingNow(false);
+        }
+    };
     const handleAddToCart = () => {
         setAddedToCart(true);
         setTimeout(() => setAddedToCart(false), 2000);
@@ -602,21 +628,52 @@ export default function ProductPage() {
                             />
 
                             <AddToCartButton productId={product._id} variantId={selectedVariant?._id} qty={qty} />
+                           
+
+
+
                             <button
+                                onClick={() => {
+                                    if (!inStock) return;
+                                    const params = new URLSearchParams({
+                                        mode: "buynow",
+                                        productId: product._id,
+                                        qty: String(qty),
+                                    });
+                                    if (selectedVariant?._id) params.set("variantId", selectedVariant._id);
+                                    router.push(`/checkout?${params.toString()}`);
+                                }}
                                 disabled={!inStock}
                                 className="flex-1 min-w-[140px] h-11 rounded-xl font-bold text-sm border-2 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                                 Buy Now
                             </button>
+                        
+
+
+
+
+{/* 
+                        {showBuyNow && (
+                            <BuyNowModal
+                                product={product}
+                                selectedVariant={selectedVariant}
+                                qty={qty}
+                                onClose={() => setShowBuyNow(false)}
+                            />
+                        )} */}
+
+
 
                             {/* <button
-                                onClick={() => setWishlisted((v) => !v)}
-                                className={`w-11 h-11 rounded-xl border flex items-center justify-center transition-all ${wishlisted
-                                    ? "border-red-400 bg-red-50 text-red-500"
-                                    : "border-accent-10 hover:border-red-300 text-body hover:text-red-400"
-                                    }`}
+                                onClick={handleBuyNow}
+                                disabled={!inStock || buyingNow}
+                                className="flex-1 min-w-[140px] h-11 rounded-xl font-bold text-sm border-2 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
-                                <Heart size={18} fill={wishlisted ? "currentColor" : "none"} />
+                                {buyingNow
+                                    ? <><Loader2 size={15} className="animate-spin" /> Adding...</>
+                                    : "Buy Now"
+                                }
                             </button> */}
 
                             <WishlistButton
