@@ -191,7 +191,7 @@ function AvatarUpload({ currentAvatar, initials, onUploaded }) {
                 >
                     {preview
                         ? <img src={preview} alt="avatar" className="w-full h-full object-cover" />
-                        : <span className="font-display font-black text-3xl text-[var(--color-primary)] dark:text-[#e2b04a]">
+                        : <span className="font-display  text-3xl text-[var(--color-primary)] dark:text-[#e2b04a]">
                             {initials}
                         </span>
                     }

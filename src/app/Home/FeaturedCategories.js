@@ -117,7 +117,7 @@ function CategoryCard({ cat, index }) {
             {/* Name */}
             <div className="text-center px-1 w-full">
                 <p className="text-heading text-xs font-bold leading-tight line-clamp-2 group-hover:text-[var(--color-primary)] transition-colors duration-200"
-                    style={{ fontFamily: "'Nunito', sans-serif" }}>
+                   >
                     {cat.name}
                 </p>
                 {cat.productCount > 0 && (
@@ -191,7 +191,7 @@ export default function FeaturedCategories() {
                         {/* Accent bar */}
                         <div className="w-1 h-6 rounded-full" style={{ background: "var(--color-primary)" }} />
                         <h2 className="text-heading  text-xl sm:text-2xl"
-                            style={{ fontFamily: "'Syne', sans-serif", letterSpacing: "-0.02em" }}>
+                 >
                             Categories
                         </h2>
                     </div>

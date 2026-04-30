@@ -8,6 +8,7 @@ import {
     Trash2, Pencil, ChevronLeft, ChevronRight, Zap,
     ShoppingCart, Gift, Truck, BarChart3, Clock, CheckCircle, XCircle
 } from "lucide-react";
+import Loading from "@/app/components/global/Loading";
 
 const TYPE_CONFIG = {
     product: { label: "Product", icon: Tag, color: "text-blue-500", bg: "bg-blue-500/10" },
@@ -196,9 +197,7 @@ export default function ManagePromotions() {
                 {/* Table */}
                 <div className="bg-card border border-accent-10 rounded-2xl overflow-hidden">
                     {loading ? (
-                        <div className="flex items-center justify-center py-20">
-                            <div className="w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
-                        </div>
+                        <Loading/>
                     ) : promotions.length === 0 ? (
                         <div className="text-center py-20 text-body">
                             <Tag size={40} className="mx-auto mb-3 opacity-30" />

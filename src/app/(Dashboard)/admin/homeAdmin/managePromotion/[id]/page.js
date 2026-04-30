@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import api from "@/app/lib/api";
 import { Zap, ArrowLeft, Loader2 } from "lucide-react";
 import PromotionForm from "../components/PromotionFrom";
+import Loading from "@/app/components/global/Loading";
 
 // Helper: convert ObjectId arrays back to comma-separated strings for the form
 // ─── UpdatePromotion/page.js — updated prepareDefaults ───────────────────────
@@ -126,10 +127,7 @@ export default function UpdatePromotion() {
 
                 {/* Loading */}
                 {fetchLoading ? (
-                    <div className="flex items-center justify-center py-20 gap-3 text-body">
-                        <Loader2 size={22} className="animate-spin" />
-                        Loading promotion…
-                    </div>
+                    <Loading />
                 ) : defaults ? (
                     <PromotionForm
                         defaultValues={defaults}
