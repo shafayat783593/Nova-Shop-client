@@ -4,12 +4,12 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
     ArrowLeft, Package, MapPin, CreditCard, Clock,
-    CheckCircle2, Truck, XCircle, RotateCcw, AlertTriangle,
-    Loader2, Phone, User, Zap, Tag, X, RefreshCcw,
+    CheckCircle2, Truck, XCircle, RotateCcw,
+    Loader2, Phone, User, Zap, Tag, X, RefreshCcw, Download,
 } from "lucide-react";
 import api from "@/app/lib/api";
 
-// ─── Status config ────────────────────────────────────────────────────────────
+// ─── Status configs ───────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
     pending: { label: "Pending", color: "text-amber-600", bg: "bg-amber-500/10", icon: Clock },
     confirmed: { label: "Confirmed", color: "text-blue-600", bg: "bg-blue-500/10", icon: CheckCircle2 },
@@ -66,7 +66,8 @@ function CancelModal({ orderId, onClose, onCancelled }) {
     const [error, setError] = useState(null);
 
     const handleCancel = async () => {
-        setLoading(true); setError(null);
+        setLoading(true);
+        setError(null);
         try {
             await api.patch(`/api/orders/${orderId}/cancel`, { reason });
             onCancelled();
@@ -106,7 +107,7 @@ function CancelModal({ orderId, onClose, onCancelled }) {
                     <button
                         onClick={handleCancel}
                         disabled={loading}
-                        className="flex-1 py-2.5 rounded-xl bg-[var(--color-danger)] text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
+                        className="flex-1 py-2.5 rounded-xl bg-[var(--color-danger)] text-white text-sm font-semibold hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2"
                     >
                         {loading && <Loader2 size={13} className="animate-spin" />}
                         Cancel Order
@@ -123,56 +124,84 @@ export default function OrderDetailPage() {
     const { orderId } = useParams();
 
     const [order, setOrder] = useState(null);
+    const [invoice, setInvoice] = useState(null);   // ✅ separate invoice state
     const [loading, setLoading] = useState(true);
     const [showCancel, setShowCancel] = useState(false);
     const [retrying, setRetrying] = useState(false);
     const [retryError, setRetryError] = useState(null);
+    const [downloading, setDownloading] = useState(false);
+    const [invoiceError, setInvoiceError] = useState(null);
 
+    // ── Fetch order ───────────────────────────────────────────────────────
     const fetchOrder = async () => {
         try {
             const { data } = await api.get(`/api/orders/${orderId}`);
             setOrder(data.data);
         } catch (err) {
-            console.error(err);
+            console.error("Fetch order error:", err);
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => { fetchOrder(); }, [orderId]);
+    // ── Fetch invoice linked to this order ────────────────────────────────
+    // Invoice is stored separately — we find it by order._id via the API
+    const fetchInvoice = async (orderMongoId) => {
+        if (!orderMongoId) return;
+        try {
+            // GET /api/invoices/by-order/:orderId  (MongoDB _id)
+            const { data } = await api.get(`/api/invoices/by-order/${orderMongoId}`);
+            setInvoice(data.data || null);
+        } catch {
+            // No invoice yet — that's fine, don't show error
+            setInvoice(null);
+        }
+    };
 
-    // ── Loading ───────────────────────────────────────────────────────────────
-    if (loading) return (
-        <div className="min-h-screen bg-bg flex items-center justify-center">
-            <Loader2 size={28} className="animate-spin text-[var(--color-primary)]" />
-        </div>
-    );
+    useEffect(() => {
+        fetchOrder();
+    }, [orderId]);
 
-    if (!order) return (
-        <div className="min-h-screen bg-bg flex items-center justify-center">
-            <p className="text-body">Order not found.</p>
-        </div>
-    );
+    // When order loads, try to fetch its invoice
+    useEffect(() => {
+        if (order?._id) {
+            fetchInvoice(order._id);
+        }
+    }, [order?._id]);
 
-    // ── Derived values ────────────────────────────────────────────────────────
-    const cfg = STATUS_CONFIG[order.orderStatus] || STATUS_CONFIG.pending;
-    const payCfg = PAYMENT_STATUS[order.paymentStatus] || PAYMENT_STATUS.pending;
-    const StatusIcon = cfg.icon;
+    // ── Download invoice PDF ───────────────────────────────────────────────
+    const handleDownloadInvoice = async () => {
+        if (!invoice?.invoiceNo) {
+            setInvoiceError("Invoice not available yet. Complete payment first.");
+            setTimeout(() => setInvoiceError(null), 4000);
+            return;
+        }
 
-    const canCancel = ["pending", "confirmed"].includes(order.orderStatus);
+        setDownloading(true);
+        setInvoiceError(null);
+        try {
+            const response = await api.get(`/api/invoices/${invoice.invoiceNo}/download`, {
+                responseType: "blob",
+            });
 
-    const canRetryPayment =
-        order.paymentMethod !== "cod" &&
-        (order.paymentStatus === "failed" || order.paymentStatus === "pending") &&
-        !["cancelled", "delivered"].includes(order.orderStatus);
+            const url = window.URL.createObjectURL(new Blob([response.data], { type: "application/pdf" }));
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", `invoice-${invoice.invoiceNo}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error("Download failed:", err);
+            setInvoiceError("Download failed. Please try again.");
+            setTimeout(() => setInvoiceError(null), 4000);
+        } finally {
+            setDownloading(false);
+        }
+    };
 
-    const payMethodLabel = {
-        bkash: "bKash",
-        sslcommerz: "SSL Commerce",
-        cod: "Cash on Delivery",
-    }[order.paymentMethod] || order.paymentMethod;
-
-    // ── Retry payment handler ─────────────────────────────────────────────────
+    // ── Retry payment ──────────────────────────────────────────────────────
     const handleRetryPayment = async () => {
         setRetrying(true);
         setRetryError(null);
@@ -184,21 +213,48 @@ export default function OrderDetailPage() {
                 window.location.href = data.data.gatewayURL;
             }
         } catch (err) {
-            setRetryError(err.response?.data?.message || "Payment শুরু করা যায়নি। আবার চেষ্টা করুন।");
+            setRetryError(err.response?.data?.message || "Payment failed. Please try again.");
             setRetrying(false);
         }
     };
+
+    // ── Loading / not found states ─────────────────────────────────────────
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-bg flex items-center justify-center">
+                <Loader2 size={28} className="animate-spin text-[var(--color-primary)]" />
+            </div>
+        );
+    }
+
+    if (!order) {
+        return (
+            <div className="min-h-screen bg-bg flex items-center justify-center">
+                <p className="text-body">Order not found.</p>
+            </div>
+        );
+    }
+
+    // ── Derived values ─────────────────────────────────────────────────────
+    const cfg = STATUS_CONFIG[order.orderStatus] || STATUS_CONFIG.pending;
+    const payCfg = PAYMENT_STATUS[order.paymentStatus] || PAYMENT_STATUS.pending;
+    const StatusIcon = cfg.icon;
+    const canCancel = ["pending", "confirmed"].includes(order.orderStatus);
+    const canRetry = order.paymentMethod !== "cod"
+        && ["failed", "pending"].includes(order.paymentStatus)
+        && !["cancelled", "delivered"].includes(order.orderStatus);
+    const payLabel = { bkash: "bKash", sslcommerz: "SSL Commerce", cod: "Cash on Delivery" }[order.paymentMethod] || order.paymentMethod;
 
     return (
         <div className="min-h-screen bg-bg">
             <div className="max-w-3xl mx-auto px-4 lg:px-8 py-8 space-y-5">
 
                 {/* ── Header ── */}
-                <div className="flex items-center gap-3">
-                    <button onClick={() => router.push("/Myorder")} className="text-body hover:text-heading transition-colors">
+                <div className="flex flex-wrap items-center gap-3">
+                    <button onClick={() => router.push("/orders")} className="text-body hover:text-heading transition-colors">
                         <ArrowLeft size={20} />
                     </button>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-[200px]">
                         <h1 className="text-heading font-black text-xl">{order.orderId}</h1>
                         <p className="text-body text-xs mt-0.5">
                             Placed {new Date(order.createdAt).toLocaleDateString("en-BD", {
@@ -206,13 +262,64 @@ export default function OrderDetailPage() {
                             })}
                         </p>
                     </div>
-                    <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${cfg.color} ${cfg.bg}`}>
-                        <StatusIcon size={12} /> {cfg.label}
-                    </span>
+
+                    <div className="flex items-center gap-2">
+                        {/* ── Invoice Download Button ── */}
+                        <button
+                            onClick={handleDownloadInvoice}
+                            disabled={downloading || !invoice}
+                            title={invoice ? `Download Invoice ${invoice.invoiceNo}` : "Invoice not available yet"}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-bold transition-all
+                                ${invoice
+                                    ? "border-[var(--color-primary)]/30 bg-card text-heading hover:bg-[var(--color-primary)]/8 hover:border-[var(--color-primary)]"
+                                    : "border-accent-10 bg-card text-body opacity-50 cursor-not-allowed"
+                                }`}
+                        >
+                            {downloading
+                                ? <Loader2 size={14} className="animate-spin" />
+                                : <Download size={14} className={invoice ? "text-[var(--color-primary)]" : "text-body"} />
+                            }
+                            {invoice ? `Invoice` : "No Invoice"}
+                        </button>
+
+                        {/* Order status badge */}
+                        <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${cfg.color} ${cfg.bg}`}>
+                            <StatusIcon size={12} /> {cfg.label}
+                        </span>
+                    </div>
                 </div>
 
-                {/* ── Re-payment Banner ── */}
-                {canRetryPayment && (
+                {/* Invoice error toast */}
+                {invoiceError && (
+                    <div className="p-3 rounded-xl bg-[var(--color-danger)]/8 border border-[var(--color-danger)]/20 text-[var(--color-danger)] text-sm">
+                        {invoiceError}
+                    </div>
+                )}
+
+                {/* Invoice info banner (shows invoiceNo when available) */}
+                {invoice && (
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-green-500/8 border border-green-500/20">
+                        <div className="flex items-center gap-2 text-green-600 text-xs font-semibold">
+                            <Download size={13} />
+                            Invoice #{invoice.invoiceNo} available
+                            {invoice.emailSentAt && (
+                                <span className="text-green-500 font-normal ml-1">
+                                    · Email sent {new Date(invoice.emailSentAt).toLocaleDateString("en-BD", { day: "numeric", month: "short" })}
+                                </span>
+                            )}
+                        </div>
+                        <button
+                            onClick={handleDownloadInvoice}
+                            disabled={downloading}
+                            className="text-green-600 text-xs font-bold hover:underline"
+                        >
+                            {downloading ? "..." : "Download PDF"}
+                        </button>
+                    </div>
+                )}
+
+                {/* ── Retry Payment Banner ── */}
+                {canRetry && (
                     <div className="bg-[var(--color-primary)]/8 border border-[var(--color-primary)]/25 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <div className="flex items-start gap-3">
                             <div className="w-9 h-9 bg-[var(--color-primary)]/15 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -221,7 +328,7 @@ export default function OrderDetailPage() {
                             <div>
                                 <p className="text-heading font-bold text-sm">Payment Incomplete</p>
                                 <p className="text-body text-xs mt-0.5">
-                                    Your payment for this order is {order.paymentStatus}. Please complete the payment to confirm your order.
+                                    Your payment is {order.paymentStatus}. Complete it to confirm your order.
                                 </p>
                                 {retryError && (
                                     <p className="text-[var(--color-danger)] text-xs mt-1 font-medium">{retryError}</p>
@@ -329,7 +436,7 @@ export default function OrderDetailPage() {
                         <div className="space-y-1.5 text-sm">
                             <div className="flex justify-between">
                                 <span className="text-body">Method</span>
-                                <span className="text-heading font-semibold">{payMethodLabel}</span>
+                                <span className="text-heading font-semibold">{payLabel}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-body">Status</span>
@@ -338,7 +445,9 @@ export default function OrderDetailPage() {
                             {order.transactionId && (
                                 <div className="flex justify-between">
                                     <span className="text-body">Trx ID</span>
-                                    <span className="text-heading font-mono text-xs truncate max-w-[120px]">{order.transactionId}</span>
+                                    <span className="text-heading font-mono text-xs truncate max-w-[120px]">
+                                        {order.transactionId}
+                                    </span>
                                 </div>
                             )}
                             {order.paidAt && (
@@ -353,7 +462,6 @@ export default function OrderDetailPage() {
                             )}
                         </div>
 
-                        {/* Delivery boy */}
                         {order.deliveryBoy && (
                             <div className="mt-3 pt-3 border-t border-accent-10">
                                 <p className="text-body text-xs font-bold uppercase tracking-wider mb-1.5">Delivery Agent</p>
@@ -380,7 +488,7 @@ export default function OrderDetailPage() {
                     </div>
                 )}
 
-                {/* ── Cancel button ── */}
+                {/* ── Cancel ── */}
                 {canCancel && (
                     <div className="flex justify-end">
                         <button
@@ -393,7 +501,6 @@ export default function OrderDetailPage() {
                 )}
             </div>
 
-            {/* Cancel modal */}
             {showCancel && (
                 <CancelModal
                     orderId={order.orderId}
