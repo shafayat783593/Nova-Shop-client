@@ -4,7 +4,7 @@ import DashboardSidebar from './components/DashboardSidebar';
 import DashboardHeader from './components/DashboardHeader';
 import { useRouter, usePathname } from 'next/navigation'; // ✅ useRouter
 import { useAuth } from '../context/AuthContext';
-import Loading from '../loading';
+import Loading from '../components/global/Loading';
 
 export default function DashboardLayout({ children }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
