@@ -92,7 +92,7 @@ function AssignModal({ order, onClose, onAssigned, showToast }) {
     const [assigning, setAssigning] = useState(null);
 
     useEffect(() => {
-        api.get("/api/delivery-boys?isActive=true&isAvailable=true")
+        api.get("/api/deliveryboys/admin/delivery-boys?isActive=true&isAvailable=true")
             .then(({ data }) => setBoys(data.data || []))
             .catch(() => showToast("Failed to load delivery boys", "error"))
             .finally(() => setLoading(false));
@@ -101,7 +101,7 @@ function AssignModal({ order, onClose, onAssigned, showToast }) {
     const handleAssign = async (boyId, boyName) => {
         setAssigning(boyId);
         try {
-            await api.patch(`/api/orders/${order.orderId}/assign`, { deliveryBoyId: boyId });
+            await api.patch(`/api/orders/admin/${order.orderId}/assign`, { deliveryBoyId: boyId });
             showToast(`Order assigned to ${boyName} ✅`);
             onAssigned();
             onClose();
@@ -210,7 +210,7 @@ function OrderDrawer({ order, onClose, onUpdated, showToast }) {
     const handleStatusChange = async (newStatus) => {
         setUpdatingStatus(true);
         try {
-            await api.patch(`/api/orders/${order.orderId}/status`, {
+            await api.patch(`/api/orders/admin/${order.orderId}/status`, {
                 status: newStatus,
                 adminNote: adminNote || undefined,
             });
@@ -227,7 +227,7 @@ function OrderDrawer({ order, onClose, onUpdated, showToast }) {
     const handleSaveNote = async () => {
         setSavingNote(true);
         try {
-            await api.patch(`/api/orders/${order.orderId}/status`, {
+            await api.patch(`/api/orders/admin/${order.orderId}/status`, {
                 status: order.orderStatus,
                 adminNote,
             });
@@ -585,7 +585,7 @@ export default function AdminOrdersPage() {
                 ...(statusFilter && { status: statusFilter }),
                 ...(payFilter && { paymentStatus: payFilter }),
             });
-            const { data } = await api.get(`/api/orders?${params}`);
+            const { data } = await api.get(`/api/orders/admin/all?${params}`);
             setOrders(data.data || []);
             setTotalPages(data.pagination?.totalPages || 1);
             setTotal(data.pagination?.total || 0);
