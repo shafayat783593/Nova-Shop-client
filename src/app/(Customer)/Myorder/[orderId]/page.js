@@ -72,10 +72,16 @@ function DeliveryTracker({ order, deliveryBoyLocation, customerLocation }) {
     // ── Load Leaflet map ───────────────────────────────────────────────────
     useEffect(() => {
         if (typeof window === "undefined" || !mapRef.current) return;
-        if (mapObjRef.current) return; // already initialized
+
+        // ✅ Already initialized check — Leaflet এর _leaflet_id দিয়ে
+        if (mapRef.current._leaflet_id) return;
+
+        let map;
 
         import("leaflet").then(L => {
-            // Fix default icon
+            // ✅ Double-check করো (async import এর কারণে race condition হতে পারে)
+            if (mapRef.current._leaflet_id) return;
+
             delete L.Icon.Default.prototype._getIconUrl;
             L.Icon.Default.mergeOptions({
                 iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -86,27 +92,25 @@ function DeliveryTracker({ order, deliveryBoyLocation, customerLocation }) {
             const initialLat = deliveryBoyLocation?.lat || customerLocation?.lat || 23.8103;
             const initialLng = deliveryBoyLocation?.lng || customerLocation?.lng || 90.4125;
 
-            const map = L.map(mapRef.current).setView([initialLat, initialLng], 14);
+            map = L.map(mapRef.current).setView([initialLat, initialLng], 14);
 
             L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
                 attribution: "© OpenStreetMap contributors",
             }).addTo(map);
 
-            // Delivery boy marker (blue)
             const dbIcon = L.divIcon({
                 html: `<div style="background:#3b82f6;width:36px;height:36px;border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3)">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
-                        </div>`,
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+                    </div>`,
                 className: "",
                 iconSize: [36, 36],
                 iconAnchor: [18, 18],
             });
 
-            // Customer marker (red)
             const cusIcon = L.divIcon({
                 html: `<div style="background:#ef4444;width:36px;height:36px;border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3)">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-                        </div>`,
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                    </div>`,
                 className: "",
                 iconSize: [36, 36],
                 iconAnchor: [18, 36],
@@ -142,6 +146,7 @@ function DeliveryTracker({ order, deliveryBoyLocation, customerLocation }) {
             setMapReady(true);
         });
 
+        // ✅ Cleanup — unmount এ map destroy করো
         return () => {
             if (mapObjRef.current) {
                 mapObjRef.current.remove();
@@ -149,7 +154,7 @@ function DeliveryTracker({ order, deliveryBoyLocation, customerLocation }) {
             }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // init once
+    }, []); // init once // init once
 
     // ── Update delivery boy marker position ────────────────────────────────
     useEffect(() => {

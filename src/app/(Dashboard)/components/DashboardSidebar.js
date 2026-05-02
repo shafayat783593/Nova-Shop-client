@@ -35,7 +35,7 @@ export default function DashboardSidebar({
     const role = normalizeRole(user?.role);
     const menuItems = DASHBOARD_MENU[role] || [];
     const isOpen = isExpanded || isSidebarOpen;
-    const sidebarWidth = isOpen ? "280px" : "85px";
+    const sidebarWidth = isOpen ? "280px" : "85px"
 
     return (
         <>
@@ -45,7 +45,6 @@ export default function DashboardSidebar({
                     onClick={() => setIsSidebarOpen(false)}
                 />
             )}
-
             <aside
                 style={{ width: sidebarWidth }}
                 className={`fixed lg:sticky top-0 left-0 z-50 h-screen bg-card
