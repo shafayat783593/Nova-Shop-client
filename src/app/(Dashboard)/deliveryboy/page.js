@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { io as socketIO } from "socket.io-client";
 import api from "@/app/lib/api";
 import {
     Loader2, Package, CheckCircle2, MapPin, Phone, Star,
     ToggleLeft, ToggleRight, Navigation, AlertCircle,
-    Truck, ChevronRight, RefreshCw,
+    Truck, ChevronRight, RefreshCw, Check, X, Clock,
+    Wifi, WifiOff,
 } from "lucide-react";
 import Loading from "@/app/components/global/Loading";
 
@@ -32,10 +34,93 @@ function Toast({ msg, type }) {
     );
 }
 
-// ─── Active Order Card ────────────────────────────────────────────────────────
-function ActiveOrderCard({ order, onDelivered }) {
+// ─── Assignment Card — shown when deliveryAssignStatus === "assigned" ─────────
+function AssignmentCard({ order, onAccept, onReject }) {
+    const [loading, setLoading] = useState(null); // "accept" | "reject"
+    const addr = order.shippingAddress;
+
+    const handleRespond = async (action) => {
+        setLoading(action);
+        try {
+            await onAccept(order.orderId, action);
+        } finally {
+            setLoading(null);
+        }
+    };
+
+    return (
+        <div className="bg-card border-2 border-yellow-400/40 rounded-2xl overflow-hidden animate-pulse-once">
+            {/* Banner */}
+            <div className="bg-yellow-400/10 px-5 py-3 flex items-center gap-2 border-b border-yellow-400/20">
+                <Clock size={14} className="text-yellow-400" />
+                <p className="text-yellow-400 font-bold text-sm">New delivery request — respond quickly!</p>
+            </div>
+
+            <div className="px-5 py-4 space-y-3">
+                {/* Order ID + Amount */}
+                <div className="flex items-center justify-between">
+                    <p className="text-heading font-black text-base">{order.orderId}</p>
+                    <p className="text-[var(--color-primary)] font-black text-lg">
+                        ৳{Number(order.total).toFixed(0)}
+                    </p>
+                </div>
+
+                {/* Address */}
+                <div className="bg-bg rounded-xl p-3 space-y-1.5">
+                    <p className="text-heading font-bold text-sm">{addr?.fullName}</p>
+                    <div className="flex items-start gap-1.5">
+                        <MapPin size={11} className="text-[var(--color-primary)] flex-shrink-0 mt-0.5" />
+                        <p className="text-body text-xs leading-relaxed">
+                            {[addr?.addressLine, addr?.area, addr?.district, addr?.division]
+                                .filter(Boolean).join(", ")}
+                        </p>
+                    </div>
+                    {addr?.phone && (
+                        <a
+                            href={`tel:${addr.phone}`}
+                            className="flex items-center gap-1.5 text-xs text-[var(--color-primary)] hover:underline"
+                        >
+                            <Phone size={11} /> {addr.phone}
+                        </a>
+                    )}
+                </div>
+
+                {/* Items count */}
+                <p className="text-body text-xs">{order.items?.length || 0} item(s) · {order.paymentMethod?.toUpperCase()}</p>
+
+                {/* Action buttons */}
+                <div className="flex gap-3 pt-1">
+                    <button
+                        onClick={() => handleRespond("reject")}
+                        disabled={!!loading}
+                        className="flex-1 py-2.5 border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold rounded-xl text-sm transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                    >
+                        {loading === "reject"
+                            ? <Loader2 size={13} className="animate-spin" />
+                            : <X size={13} />}
+                        Reject
+                    </button>
+                    <button
+                        onClick={() => handleRespond("accept")}
+                        disabled={!!loading}
+                        className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl text-sm transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                    >
+                        {loading === "accept"
+                            ? <Loader2 size={13} className="animate-spin" />
+                            : <Check size={13} />}
+                        Accept
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── Active Order Card ─────────────────────────────────────────────────────────
+function ActiveOrderCard({ order, onDelivered, onLocationSend, socketConnected }) {
     const [delivering, setDelivering] = useState(false);
     const [expanded, setExpanded] = useState(false);
+    const [sendingLoc, setSendingLoc] = useState(false);
     const addr = order.shippingAddress;
 
     const handleDeliver = async () => {
@@ -51,9 +136,22 @@ function ActiveOrderCard({ order, onDelivered }) {
         }
     };
 
+    const handleShareLocation = () => {
+        if (!navigator.geolocation) return;
+        setSendingLoc(true);
+        navigator.geolocation.getCurrentPosition(
+            ({ coords }) => {
+                onLocationSend(order.orderId, coords.latitude, coords.longitude);
+                setSendingLoc(false);
+            },
+            () => setSendingLoc(false),
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+        );
+    };
+
     return (
         <div className="bg-card border border-accent-10 rounded-2xl overflow-hidden hover:shadow-md transition-all">
-            {/* Header — always visible */}
+            {/* Header */}
             <div
                 className="flex items-center justify-between px-5 py-4 cursor-pointer select-none"
                 onClick={() => setExpanded(v => !v)}
@@ -76,10 +174,8 @@ function ActiveOrderCard({ order, onDelivered }) {
                 </div>
             </div>
 
-            {/* Expandable body */}
             {expanded && (
                 <div className="border-t border-accent-10 px-5 pb-5 pt-4 space-y-4">
-
                     {/* Items */}
                     <div>
                         <p className="text-body text-[10px] font-semibold uppercase tracking-widest mb-2">Items</p>
@@ -113,8 +209,7 @@ function ActiveOrderCard({ order, onDelivered }) {
                                     className="flex items-center gap-1.5 text-xs text-[var(--color-primary)] hover:underline"
                                     onClick={e => e.stopPropagation()}
                                 >
-                                    <Phone size={11} />
-                                    {addr.phone}
+                                    <Phone size={11} /> {addr.phone}
                                 </a>
                             )}
                         </div>
@@ -136,7 +231,18 @@ function ActiveOrderCard({ order, onDelivered }) {
                         </span>
                     </div>
 
-                    {/* Deliver CTA */}
+                    {/* Share Location */}
+                    <button
+                        onClick={handleShareLocation}
+                        disabled={sendingLoc || !socketConnected}
+                        className="w-full py-2.5 border border-blue-500/20 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 font-bold rounded-xl text-sm transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                    >
+                        {sendingLoc
+                            ? <><Loader2 size={13} className="animate-spin" /> Sending...</>
+                            : <><Navigation size={13} /> Share My Location</>}
+                    </button>
+
+                    {/* Mark Delivered */}
                     <button
                         onClick={handleDeliver}
                         disabled={delivering}
@@ -174,80 +280,18 @@ function CompletedRow({ order }) {
     );
 }
 
-// ─── GPS Location Card ────────────────────────────────────────────────────────
-function GPSCard({ showToast }) {
-    const [loading, setLoading] = useState(false);
-    const [lastUpdate, setLastUpdate] = useState(null);
-
-    const handleUpdate = () => {
-        if (!navigator.geolocation) {
-            showToast("Geolocation not supported by your browser", "error");
-            return;
-        }
-        setLoading(true);
-        navigator.geolocation.getCurrentPosition(
-            async ({ coords }) => {
-                try {
-                    await api.patch("/api/deliveryboys/location", {
-                        lat: coords.latitude,
-                        lng: coords.longitude,
-                    });
-                    setLastUpdate(new Date());
-                    showToast(`Location updated ✅ (${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)})`);
-                } catch {
-                    showToast("Failed to send location to server", "error");
-                } finally {
-                    setLoading(false);
-                }
-            },
-            (err) => {
-                const msgs = {
-                    1: "Location permission denied — please allow in browser settings",
-                    2: "Location unavailable",
-                    3: "Location request timed out",
-                };
-                showToast(msgs[err.code] || "Failed to get location", "error");
-                setLoading(false);
-            },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
-    };
-
-    return (
-        <div className="bg-card border border-accent-10 rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                    <Navigation size={14} className="text-blue-400" />
-                    <p className="text-heading font-bold text-sm">GPS Location</p>
-                </div>
-                {lastUpdate && (
-                    <p className="text-body text-xs">Last updated {fmtTime(lastUpdate)}</p>
-                )}
-            </div>
-            <p className="text-body text-xs mb-3">
-                Customers can see your location while their order is being delivered.
-            </p>
-            <button
-                onClick={handleUpdate}
-                disabled={loading}
-                className="w-full py-2.5 border border-blue-500/20 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 font-bold rounded-xl text-sm transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-            >
-                {loading
-                    ? <><Loader2 size={13} className="animate-spin" /> Getting location...</>
-                    : <><Navigation size={13} /> Update My Location</>}
-            </button>
-        </div>
-    );
-}
-
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function DeliveryDashboardPage() {
     const [profile, setProfile] = useState(null);
     const [orders, setOrders] = useState({ pending: [], completed: [], total: 0 });
+    const [assignedOrders, setAssignedOrders] = useState([]); // waiting for accept/reject
     const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState("pending");
     const [togglingAvail, setTogglingAvail] = useState(false);
+    const [socketConnected, setSocketConnected] = useState(false);
     const [toast, setToast] = useState({ msg: "", type: "success" });
+
+    const socketRef = useRef(null);
 
     const showToast = useCallback((msg, type = "success") => {
         setToast({ msg, type });
@@ -261,7 +305,14 @@ export default function DeliveryDashboardPage() {
                 api.get("/api/deliveryboys/orders"),
             ]);
             setProfile(profileRes.data.data);
-            setOrders(ordersRes.data.data);
+            const data = ordersRes.data.data;
+            setOrders(data);
+
+            // Separate "assigned but not accepted" orders
+            const assigned = (data.pending || []).filter(
+                o => o.deliveryAssignStatus === "assigned"
+            );
+            setAssignedOrders(assigned);
         } catch {
             showToast("Failed to load data", "error");
         } finally {
@@ -271,11 +322,69 @@ export default function DeliveryDashboardPage() {
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
 
-    // Auto-refresh every 60s
+    // ── Socket.IO connection ───────────────────────────────────────────────
+    useEffect(() => {
+        if (!profile) return;
+
+        const socket = socketIO(process.env.NEXT_PUBLIC_SOCKET_URL || "", {
+            withCredentials: true,
+            transports: ["websocket"],
+        });
+
+        socketRef.current = socket;
+
+        socket.on("connect", () => {
+            setSocketConnected(true);
+            socket.emit("join:delivery", profile.deliveryBoyId || profile._id);
+        });
+
+        socket.on("disconnect", () => setSocketConnected(false));
+
+        // Admin assigned a new order
+        socket.on("delivery:assigned", (data) => {
+            showToast(`New order assigned: ${data.orderId} 📦`);
+            fetchAll();
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [profile, fetchAll, showToast]);
+
+    // ── Auto-refresh every 60s ─────────────────────────────────────────────
     useEffect(() => {
         const t = setInterval(fetchAll, 60_000);
         return () => clearInterval(t);
     }, [fetchAll]);
+
+    // ── Send location via socket ───────────────────────────────────────────
+    const handleLocationSend = useCallback((orderId, lat, lng) => {
+        const socket = socketRef.current;
+        if (!socket || !socket.connected) {
+            showToast("Socket not connected", "error");
+            return;
+        }
+
+        const deliveryBoyId = profile?.deliveryBoyId || profile?._id;
+        socket.emit("delivery:locationUpdate", { orderId, deliveryBoyId, lat, lng });
+        showToast(`Location sent ✅ (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
+    }, [profile, showToast]);
+
+    // ── Accept / Reject assignment ─────────────────────────────────────────
+    const handleRespond = useCallback(async (orderId, action) => {
+        try {
+            await api.patch(`/api/deliveryboys/orders/${orderId}/respond`, { action });
+            setAssignedOrders(prev => prev.filter(o => o.orderId !== orderId));
+            showToast(
+                action === "accept"
+                    ? "Order accepted! Head to the customer 🚴"
+                    : "Order rejected. Admin will reassign."
+            );
+            setTimeout(fetchAll, 1000);
+        } catch (err) {
+            showToast(err.response?.data?.message || "Failed to respond", "error");
+        }
+    }, [fetchAll, showToast]);
 
     const handleToggleAvailability = async () => {
         if (!profile) return;
@@ -301,18 +410,21 @@ export default function DeliveryDashboardPage() {
         setTimeout(fetchAll, 2000);
     }, [fetchAll, showToast]);
 
-    if (loading) return <Loading/>
+    if (loading) return <Loading />;
 
-    const pendingCount = orders.pending?.length || 0;
+    // Active = accepted + shipped (not just "assigned")
+    const activeOrders = (orders.pending || []).filter(
+        o => o.deliveryAssignStatus === "accepted" || o.orderStatus === "shipped"
+    );
+    const pendingCount = activeOrders.length;
     const completedCount = orders.completed?.length || 0;
 
     return (
         <div className="min-h-screen bg-bg pb-10">
 
-            {/* ── Sticky Topbar ─────────────────────────────────────────────── */}
+            {/* ── Sticky Topbar ─────────────────────────────────────────── */}
             <div className="sticky top-0 z-40 bg-card/80 backdrop-blur border-b border-accent-10">
                 <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-                    {/* Avatar + name */}
                     <div className="flex items-center gap-3">
                         <div className="w-9 h-9 bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] rounded-xl flex items-center justify-center text-white font-black text-base uppercase select-none">
                             {profile?.name?.[0] || "D"}
@@ -322,20 +434,21 @@ export default function DeliveryDashboardPage() {
                             <div className="flex items-center gap-1.5">
                                 <span className={`w-1.5 h-1.5 rounded-full inline-block ${profile?.isAvailable ? "bg-emerald-400" : "bg-gray-400"}`} />
                                 <p className="text-body text-xs">{profile?.isAvailable ? "Available" : "Offline"}</p>
+                                {/* Socket status */}
+                                <span className="ml-1">
+                                    {socketConnected
+                                        ? <Wifi size={10} className="text-emerald-400" />
+                                        : <WifiOff size={10} className="text-gray-400" />}
+                                </span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Right controls */}
                     <div className="flex items-center gap-2">
-                        <button
-                            onClick={fetchAll}
-                            title="Refresh"
-                            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent-10 transition-colors text-body"
-                        >
+                        <button onClick={fetchAll} title="Refresh"
+                            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent-10 transition-colors text-body">
                             <RefreshCw size={14} />
                         </button>
-
                         <button
                             onClick={handleToggleAvailability}
                             disabled={togglingAvail}
@@ -346,25 +459,22 @@ export default function DeliveryDashboardPage() {
                         >
                             {togglingAvail
                                 ? <Loader2 size={12} className="animate-spin" />
-                                : profile?.isAvailable
-                                    ? <ToggleRight size={14} />
-                                    : <ToggleLeft size={14} />}
+                                : profile?.isAvailable ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
                             {profile?.isAvailable ? "Go Offline" : "Go Online"}
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* ── Main Content ───────────────────────────────────────────────── */}
             <div className="max-w-2xl mx-auto px-4 py-5 space-y-4">
 
                 {/* Stats */}
                 <div className="grid grid-cols-4 gap-3">
                     {[
-                        { label: "Active", value: pendingCount, icon: Truck, cls: "text-yellow-400", bg: "bg-yellow-400/10" },
-                        { label: "Delivered", value: profile?.totalDelivered ?? 0, icon: CheckCircle2, cls: "text-emerald-400", bg: "bg-emerald-400/10" },
-                        { label: "Rating", value: `${(profile?.rating ?? 5).toFixed(1)}★`, icon: Star, cls: "text-yellow-400", bg: "bg-yellow-400/10" },
-                        { label: "Zones", value: profile?.zones?.length ?? 0, icon: MapPin, cls: "text-blue-400", bg: "bg-blue-400/10" },
+                        { label: "Active", value: pendingCount, cls: "text-yellow-400", bg: "bg-yellow-400/10", icon: Truck },
+                        { label: "Delivered", value: profile?.totalDelivered ?? 0, cls: "text-emerald-400", bg: "bg-emerald-400/10", icon: CheckCircle2 },
+                        { label: "Rating", value: `${(profile?.rating ?? 5).toFixed(1)}★`, cls: "text-yellow-400", bg: "bg-yellow-400/10", icon: Star },
+                        { label: "Zones", value: profile?.zones?.length ?? 0, cls: "text-blue-400", bg: "bg-blue-400/10", icon: MapPin },
                     ].map(({ label, value, icon: Icon, cls, bg }) => (
                         <div key={label} className="bg-card border border-accent-10 rounded-2xl p-3 flex flex-col items-center text-center">
                             <div className={`w-8 h-8 ${bg} rounded-xl flex items-center justify-center mb-2`}>
@@ -376,15 +486,28 @@ export default function DeliveryDashboardPage() {
                     ))}
                 </div>
 
-                {/* GPS Card */}
-                <GPSCard showToast={showToast} />
+                {/* ── New assignment requests ────────────────────────────── */}
+                {assignedOrders.length > 0 && (
+                    <div className="space-y-3">
+                        <p className="text-heading font-black text-sm flex items-center gap-2">
+                            <Clock size={14} className="text-yellow-400" />
+                            Pending Requests ({assignedOrders.length})
+                        </p>
+                        {assignedOrders.map(order => (
+                            <AssignmentCard
+                                key={order.orderId}
+                                order={order}
+                                onAccept={handleRespond}
+                                onReject={handleRespond}
+                            />
+                        ))}
+                    </div>
+                )}
 
                 {/* Zones */}
                 {profile?.zones?.length > 0 && (
                     <div className="bg-card border border-accent-10 rounded-2xl px-4 py-3">
-                        <p className="text-body text-[10px] font-semibold uppercase tracking-widest mb-2">
-                            Coverage Zones
-                        </p>
+                        <p className="text-body text-[10px] font-semibold uppercase tracking-widest mb-2">Coverage Zones</p>
                         <div className="flex flex-wrap gap-2">
                             {profile.zones.map(zone => (
                                 <span key={zone}
@@ -431,11 +554,13 @@ export default function DeliveryDashboardPage() {
                         </div>
                     ) : (
                         <div className="space-y-3">
-                            {orders.pending.map(order => (
+                            {activeOrders.map(order => (
                                 <ActiveOrderCard
                                     key={order.orderId}
                                     order={order}
                                     onDelivered={handleDelivered}
+                                    onLocationSend={handleLocationSend}
+                                    socketConnected={socketConnected}
                                 />
                             ))}
                         </div>

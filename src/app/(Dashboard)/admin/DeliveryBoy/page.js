@@ -5,7 +5,7 @@ import api from "@/app/lib/api";
 import {
     Loader2, UserPlus, Search, MoreVertical, Phone,
     MapPin, Package, Star, ToggleLeft, ToggleRight,
-    Trash2, X, Check, ChevronDown, Mail, Shield
+    Trash2, X, Check, Mail, Shield, Wifi,
 } from "lucide-react";
 import Loading from "@/app/components/global/Loading";
 
@@ -24,7 +24,9 @@ function InviteModal({ onClose, onSuccess }) {
         try {
             await api.post("/api/deliveryboys/admin/delivery-boys/invite", {
                 ...form,
-                zones: form.zones ? form.zones.split(",").map(z => z.trim()).filter(Boolean) : [],
+                zones: form.zones
+                    ? form.zones.split(",").map(z => z.trim()).filter(Boolean)
+                    : [],
             });
             onSuccess?.();
             onClose();
@@ -39,10 +41,9 @@ function InviteModal({ onClose, onSuccess }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
             style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
             <div className="bg-card border border-accent-10 rounded-2xl w-full max-w-md p-6 shadow-2xl">
-                {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                        <h2 className="text-heading font-black text-lg">Invite Delivery Boy</h2>
+                        <h2 className="text-heading font-black text-lg">Invite Delivery Partner</h2>
                         <p className="text-body text-xs mt-0.5">They'll receive a setup link via email</p>
                     </div>
                     <button onClick={onClose}
@@ -55,9 +56,7 @@ function InviteModal({ onClose, onSuccess }) {
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className="text-heading text-xs font-semibold block mb-1.5">Full Name *</label>
-                            <input
-                                type="text"
-                                value={form.name}
+                            <input type="text" value={form.name}
                                 onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                                 placeholder="Rahim Uddin"
                                 className="w-full px-3 py-2.5 bg-bg border border-accent-10 rounded-xl text-heading text-sm outline-none focus:border-[var(--color-primary)] transition-all"
@@ -65,32 +64,24 @@ function InviteModal({ onClose, onSuccess }) {
                         </div>
                         <div>
                             <label className="text-heading text-xs font-semibold block mb-1.5">Phone</label>
-                            <input
-                                type="text"
-                                value={form.phone}
+                            <input type="text" value={form.phone}
                                 onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
                                 placeholder="01XXXXXXXXX"
                                 className="w-full px-3 py-2.5 bg-bg border border-accent-10 rounded-xl text-heading text-sm outline-none focus:border-[var(--color-primary)] transition-all"
                             />
                         </div>
                     </div>
-
                     <div>
                         <label className="text-heading text-xs font-semibold block mb-1.5">Email *</label>
-                        <input
-                            type="email"
-                            value={form.email}
+                        <input type="email" value={form.email}
                             onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
                             placeholder="rahim@example.com"
                             className="w-full px-3 py-2.5 bg-bg border border-accent-10 rounded-xl text-heading text-sm outline-none focus:border-[var(--color-primary)] transition-all"
                         />
                     </div>
-
                     <div>
                         <label className="text-heading text-xs font-semibold block mb-1.5">Zones (comma separated)</label>
-                        <input
-                            type="text"
-                            value={form.zones}
+                        <input type="text" value={form.zones}
                             onChange={e => setForm(p => ({ ...p, zones: e.target.value }))}
                             placeholder="Dhanmondi, Mirpur, Uttara"
                             className="w-full px-3 py-2.5 bg-bg border border-accent-10 rounded-xl text-heading text-sm outline-none focus:border-[var(--color-primary)] transition-all"
@@ -121,7 +112,7 @@ function InviteModal({ onClose, onSuccess }) {
 }
 
 // ─── Delivery Boy Card ────────────────────────────────────────────────────────
-function DeliveryBoyCard({ boy, onToggle, onDelete, onUpdate }) {
+function DeliveryBoyCard({ boy, onToggle, onDelete }) {
     const [menuOpen, setMenuOpen] = useState(false);
     const [toggling, setToggling] = useState(false);
     const [deleting, setDeleting] = useState(false);
@@ -154,8 +145,14 @@ function DeliveryBoyCard({ boy, onToggle, onDelete, onUpdate }) {
 
     return (
         <div className={`bg-card border rounded-2xl p-5 relative transition-all hover:shadow-lg ${boy.isActive ? "border-accent-10" : "border-red-500/20 opacity-70"}`}>
-            {/* Status dot */}
-            <div className={`absolute top-4 right-4 w-2.5 h-2.5 rounded-full ${boy.isAvailable && boy.isActive ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]" : "bg-gray-400"}`} />
+            {/* Online / offline dot */}
+            <div
+                title={boy.isOnline ? "Online" : "Offline"}
+                className={`absolute top-4 right-4 w-2.5 h-2.5 rounded-full
+                    ${boy.isOnline
+                        ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)] animate-pulse"
+                        : "bg-gray-400"}`}
+            />
 
             {/* Avatar + name */}
             <div className="flex items-center gap-3 mb-4">
@@ -163,7 +160,12 @@ function DeliveryBoyCard({ boy, onToggle, onDelete, onUpdate }) {
                     {boy.name?.[0] || "?"}
                 </div>
                 <div className="flex-1 min-w-0">
-                    <p className="text-heading font-bold text-sm truncate">{boy.name}</p>
+                    <div className="flex items-center gap-2">
+                        <p className="text-heading font-bold text-sm truncate">{boy.name}</p>
+                        {boy.isOnline && (
+                            <Wifi size={11} className="text-emerald-400 flex-shrink-0" />
+                        )}
+                    </div>
                     <p className="text-body text-xs truncate">{boy.email}</p>
                 </div>
                 {/* Menu */}
@@ -176,7 +178,11 @@ function DeliveryBoyCard({ boy, onToggle, onDelete, onUpdate }) {
                         <div className="absolute right-0 top-9 w-44 bg-card border border-accent-10 rounded-xl shadow-xl z-20 overflow-hidden py-1">
                             <button onClick={handleToggle} disabled={toggling}
                                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-heading hover:bg-accent-10 transition-colors">
-                                {toggling ? <Loader2 size={12} className="animate-spin" /> : boy.isActive ? <ToggleRight size={12} className="text-emerald-400" /> : <ToggleLeft size={12} />}
+                                {toggling
+                                    ? <Loader2 size={12} className="animate-spin" />
+                                    : boy.isActive
+                                        ? <ToggleRight size={12} className="text-emerald-400" />
+                                        : <ToggleLeft size={12} />}
                                 {boy.isActive ? "Deactivate" : "Activate"}
                             </button>
                             <button onClick={handleDelete} disabled={deleting}
@@ -191,21 +197,17 @@ function DeliveryBoyCard({ boy, onToggle, onDelete, onUpdate }) {
 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-2 mb-4">
-                <div className="bg-bg rounded-xl p-2.5 text-center">
-                    <Package size={12} className="text-[var(--color-primary)] mx-auto mb-1" />
-                    <p className="text-heading font-black text-sm">{boy.currentOrders || 0}</p>
-                    <p className="text-body text-[10px]">Active</p>
-                </div>
-                <div className="bg-bg rounded-xl p-2.5 text-center">
-                    <Check size={12} className="text-emerald-400 mx-auto mb-1" />
-                    <p className="text-heading font-black text-sm">{boy.totalDelivered || 0}</p>
-                    <p className="text-body text-[10px]">Done</p>
-                </div>
-                <div className="bg-bg rounded-xl p-2.5 text-center">
-                    <Star size={12} className="text-yellow-400 mx-auto mb-1" />
-                    <p className="text-heading font-black text-sm">{(boy.rating || 5).toFixed(1)}</p>
-                    <p className="text-body text-[10px]">Rating</p>
-                </div>
+                {[
+                    { icon: Package, color: "text-[var(--color-primary)]", value: boy.currentOrders || 0, label: "Active" },
+                    { icon: Check, color: "text-emerald-400", value: boy.totalDelivered || 0, label: "Done" },
+                    { icon: Star, color: "text-yellow-400", value: (boy.rating || 5).toFixed(1), label: "Rating" },
+                ].map(({ icon: Icon, color, value, label }) => (
+                    <div key={label} className="bg-bg rounded-xl p-2.5 text-center">
+                        <Icon size={12} className={`${color} mx-auto mb-1`} />
+                        <p className="text-heading font-black text-sm">{value}</p>
+                        <p className="text-body text-[10px]">{label}</p>
+                    </div>
+                ))}
             </div>
 
             {/* Info */}
@@ -224,13 +226,19 @@ function DeliveryBoyCard({ boy, onToggle, onDelete, onUpdate }) {
                 )}
             </div>
 
-            {/* Status badge */}
-            <div className="mt-3 flex gap-2">
-                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${boy.isActive ? "bg-emerald-400/10 text-emerald-400" : "bg-red-400/10 text-red-400"}`}>
+            {/* Status badges */}
+            <div className="mt-3 flex flex-wrap gap-2">
+                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full
+                    ${boy.isActive ? "bg-emerald-400/10 text-emerald-400" : "bg-red-400/10 text-red-400"}`}>
                     {boy.isActive ? "Active" : "Inactive"}
                 </span>
-                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${boy.isAvailable ? "bg-blue-400/10 text-blue-400" : "bg-gray-400/10 text-gray-400"}`}>
-                    {boy.isAvailable ? "Available" : "Offline"}
+                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full
+                    ${boy.isAvailable ? "bg-blue-400/10 text-blue-400" : "bg-gray-400/10 text-gray-400"}`}>
+                    {boy.isAvailable ? "Available" : "Unavailable"}
+                </span>
+                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full
+                    ${boy.isOnline ? "bg-emerald-400/10 text-emerald-400" : "bg-gray-400/10 text-gray-400"}`}>
+                    {boy.isOnline ? "🟢 Online" : "⚫ Offline"}
                 </span>
             </div>
         </div>
@@ -251,7 +259,7 @@ export default function AdminDeliveryBoysPage() {
         try {
             const params = new URLSearchParams();
             if (search) params.set("search", search);
-            if (filterActive !== "") params.set("isActive", filterActive);
+            if (filterActive) params.set("isActive", filterActive);
 
             const { data } = await api.get(`/api/deliveryboys/admin/delivery-boys?${params}`);
             setBoys(data.data || []);
@@ -279,11 +287,12 @@ export default function AdminDeliveryBoysPage() {
 
     const handleDelete = (id) => {
         setBoys(prev => prev.filter(b => b._id !== id));
-        showToast("Delivery boy removed");
+        showToast("Delivery partner removed");
     };
 
     const activeCount = boys.filter(b => b.isActive).length;
     const availableCount = boys.filter(b => b.isAvailable && b.isActive).length;
+    const onlineCount = boys.filter(b => b.isOnline).length;
 
     return (
         <div className="min-h-screen bg-bg p-6">
@@ -302,12 +311,13 @@ export default function AdminDeliveryBoysPage() {
                     </button>
                 </div>
 
-                {/* Stats */}
-                <div className="grid grid-cols-3 gap-4 mb-6">
+                {/* Stats — now 4 tiles including Online */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                     {[
                         { label: "Total Partners", value: boys.length, icon: Shield, color: "text-[var(--color-primary)]", bg: "bg-[var(--color-primary)]/10" },
                         { label: "Active", value: activeCount, icon: ToggleRight, color: "text-emerald-400", bg: "bg-emerald-400/10" },
                         { label: "Available Now", value: availableCount, icon: MapPin, color: "text-blue-400", bg: "bg-blue-400/10" },
+                        { label: "Online Now", value: onlineCount, icon: Wifi, color: "text-cyan-400", bg: "bg-cyan-400/10" },
                     ].map(({ label, value, icon: Icon, color, bg }) => (
                         <div key={label} className="bg-card border border-accent-10 rounded-2xl p-5 flex items-center gap-4">
                             <div className={`w-12 h-12 ${bg} rounded-xl flex items-center justify-center`}>
@@ -333,10 +343,8 @@ export default function AdminDeliveryBoysPage() {
                             className="w-full pl-10 pr-4 py-2.5 bg-card border border-accent-10 rounded-xl text-heading text-sm outline-none focus:border-[var(--color-primary)] transition-all"
                         />
                     </div>
-                    <select
-                        value={filterActive}
-                        onChange={e => setFilterActive(e.target.value)}
-                        className="px-4 py-2.5 bg-card border border-accent-10 rounded-xl text-heading text-sm outline-none focus:border-[var(--color-primary)] transition-all cursor-pointer">
+                    <select value={filterActive} onChange={e => setFilterActive(e.target.value)}
+                        className="px-4 py-2.5 bg-card border border-accent-10 rounded-xl text-heading text-sm outline-none cursor-pointer">
                         <option value="">All Status</option>
                         <option value="true">Active</option>
                         <option value="false">Inactive</option>
@@ -345,7 +353,7 @@ export default function AdminDeliveryBoysPage() {
 
                 {/* Grid */}
                 {loading ? (
-                   <Loading/>
+                    <Loading />
                 ) : boys.length === 0 ? (
                     <div className="text-center py-24">
                         <div className="w-16 h-16 bg-accent-10 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -372,7 +380,6 @@ export default function AdminDeliveryBoysPage() {
                 )}
             </div>
 
-            {/* Invite Modal */}
             {showInvite && (
                 <InviteModal
                     onClose={() => setShowInvite(false)}
@@ -380,7 +387,6 @@ export default function AdminDeliveryBoysPage() {
                 />
             )}
 
-            {/* Toast */}
             {toast && (
                 <div className="fixed bottom-6 right-6 bg-card border border-accent-10 text-heading text-sm font-semibold px-5 py-3 rounded-2xl shadow-xl z-50 flex items-center gap-2">
                     <Check size={14} className="text-emerald-400" />
