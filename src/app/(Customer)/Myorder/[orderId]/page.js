@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Head from "next/head";
 import { io as socketIO } from "socket.io-client";
 import {
     ArrowLeft, Package, MapPin, CreditCard, Clock,
     CheckCircle2, Truck, XCircle, RotateCcw,
     Loader2, Phone, User, Zap, Tag, X, RefreshCcw, Download,
-    Navigation, AlertCircle,
+    Navigation, Wifi, WifiOff,
 } from "lucide-react";
 import api from "@/app/lib/api";
 
@@ -42,46 +43,63 @@ function calcDistance(lat1, lng1, lat2, lng2) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// ─── Real-time Delivery Tracker ───────────────────────────────────────────────
-// Shown when orderStatus === "shipped" and delivery boy is on the way
-function DeliveryTracker({ order, deliveryBoyLocation, customerLocation }) {
-    const mapRef = useRef(null);
-    const mapObjRef = useRef(null);
-    const dbMarkerRef = useRef(null);
-    const cusMarkerRef = useRef(null);
-    const lineRef = useRef(null);
+// ─── Inject Leaflet CSS once into <head> ─────────────────────────────────────
+function useLeafletCSS() {
+    useEffect(() => {
+        if (document.getElementById("leaflet-css")) return;
+        const link = document.createElement("link");
+        link.id = "leaflet-css";
+        link.rel = "stylesheet";
+        link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+        link.crossOrigin = "";
+        document.head.appendChild(link);
+    }, []);
+}
 
-    const [mapReady, setMapReady] = useState(false);
+// ─── Delivery Tracker Map ─────────────────────────────────────────────────────
+function DeliveryTracker({ order, deliveryBoyLoc, customerLoc }) {
+    useLeafletCSS();
+
+    const mapContainerRef = useRef(null);
+    const mapRef = useRef(null);  // Leaflet map instance
+    const dbMarkerRef = useRef(null);  // delivery boy marker
+    const cusMarkerRef = useRef(null);  // customer marker
+    const lineRef = useRef(null);  // dashed line
+    const initializedRef = useRef(false);
+
     const [distance, setDistance] = useState(null);
     const [eta, setEta] = useState(null);
+    const [mapReady, setMapReady] = useState(false);
 
     const snapshot = order.deliveryBoySnapshot;
 
-    // ── Calculate distance & ETA when location changes ────────────────────
+    // ── Recalculate distance / ETA ────────────────────────────────────────
     useEffect(() => {
-        if (!deliveryBoyLocation || !customerLocation?.lat) return;
-        const dist = calcDistance(
-            deliveryBoyLocation.lat, deliveryBoyLocation.lng,
-            customerLocation.lat, customerLocation.lng
+        if (!deliveryBoyLoc || !customerLoc?.lat) return;
+        const d = calcDistance(
+            deliveryBoyLoc.lat, deliveryBoyLoc.lng,
+            customerLoc.lat, customerLoc.lng
         );
-        setDistance(dist.toFixed(2));
-        // avg 20 km/h in city traffic
-        setEta(Math.ceil((dist / 20) * 60));
-    }, [deliveryBoyLocation, customerLocation]);
+        setDistance(d.toFixed(2));
+        setEta(Math.ceil((d / 20) * 60));
+    }, [deliveryBoyLoc, customerLoc]);
 
-    // ── Load Leaflet map ───────────────────────────────────────────────────
+    // ── Initialize map (once) ─────────────────────────────────────────────
     useEffect(() => {
-        if (typeof window === "undefined" || !mapRef.current) return;
+        if (typeof window === "undefined") return;
+        if (initializedRef.current) return;
+        if (!mapContainerRef.current) return;
 
-        // ✅ Already initialized check — Leaflet এর _leaflet_id দিয়ে
-        if (mapRef.current._leaflet_id) return;
+        initializedRef.current = true;
 
-        let map;
+        const initLat = deliveryBoyLoc?.lat ?? customerLoc?.lat ?? 23.8103;
+        const initLng = deliveryBoyLoc?.lng ?? customerLoc?.lng ?? 90.4125;
 
-        import("leaflet").then(L => {
-            // ✅ Double-check করো (async import এর কারণে race condition হতে পারে)
-            if (mapRef.current._leaflet_id) return;
+        import("leaflet").then((L) => {
+            // Guard: container already has a map (strict mode double-invoke)
+            if (mapContainerRef.current?._leaflet_id) return;
 
+            // Fix default marker icons
             delete L.Icon.Default.prototype._getIconUrl;
             L.Icon.Default.mergeOptions({
                 iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -89,149 +107,172 @@ function DeliveryTracker({ order, deliveryBoyLocation, customerLocation }) {
                 shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
             });
 
-            const initialLat = deliveryBoyLocation?.lat || customerLocation?.lat || 23.8103;
-            const initialLng = deliveryBoyLocation?.lng || customerLocation?.lng || 90.4125;
-
-            map = L.map(mapRef.current).setView([initialLat, initialLng], 14);
+            const map = L.map(mapContainerRef.current, {
+                zoomControl: true,
+                scrollWheelZoom: true,
+            }).setView([initLat, initLng], 14);
 
             L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-                attribution: "© OpenStreetMap contributors",
+                attribution: "© OpenStreetMap",
+                maxZoom: 19,
             }).addTo(map);
 
+            // Delivery boy icon (blue circle)
             const dbIcon = L.divIcon({
-                html: `<div style="background:#3b82f6;width:36px;height:36px;border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+                html: `
+                    <div style="
+                        background:#3b82f6;
+                        width:40px;height:40px;
+                        border-radius:50%;
+                        border:3px solid white;
+                        display:flex;align-items:center;justify-content:center;
+                        box-shadow:0 2px 10px rgba(59,130,246,0.5);
+                    ">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="white" viewBox="0 0 24 24">
+                            <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/>
+                        </svg>
                     </div>`,
                 className: "",
-                iconSize: [36, 36],
-                iconAnchor: [18, 18],
+                iconSize: [40, 40],
+                iconAnchor: [20, 20],
             });
 
+            // Customer icon (red pin)
             const cusIcon = L.divIcon({
-                html: `<div style="background:#ef4444;width:36px;height:36px;border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                html: `
+                    <div style="
+                        background:#ef4444;
+                        width:40px;height:40px;
+                        border-radius:50%;
+                        border:3px solid white;
+                        display:flex;align-items:center;justify-content:center;
+                        box-shadow:0 2px 10px rgba(239,68,68,0.5);
+                    ">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 24 24">
+                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                        </svg>
                     </div>`,
                 className: "",
-                iconSize: [36, 36],
-                iconAnchor: [18, 36],
+                iconSize: [40, 40],
+                iconAnchor: [20, 40],
             });
 
-            if (deliveryBoyLocation) {
+            // Place delivery boy marker
+            if (deliveryBoyLoc) {
                 dbMarkerRef.current = L.marker(
-                    [deliveryBoyLocation.lat, deliveryBoyLocation.lng],
+                    [deliveryBoyLoc.lat, deliveryBoyLoc.lng],
                     { icon: dbIcon }
-                ).bindPopup("Delivery Partner").addTo(map);
+                ).bindPopup(`<b>${snapshot?.name || "Delivery Partner"}</b><br>On the way`).addTo(map);
             }
 
-            if (customerLocation?.lat) {
+            // Place customer marker
+            if (customerLoc?.lat) {
                 cusMarkerRef.current = L.marker(
-                    [customerLocation.lat, customerLocation.lng],
+                    [customerLoc.lat, customerLoc.lng],
                     { icon: cusIcon }
                 ).bindPopup("Your Location").addTo(map);
             }
 
-            if (deliveryBoyLocation && customerLocation?.lat) {
+            // Draw line between them
+            if (deliveryBoyLoc && customerLoc?.lat) {
                 lineRef.current = L.polyline(
-                    [[deliveryBoyLocation.lat, deliveryBoyLocation.lng], [customerLocation.lat, customerLocation.lng]],
-                    { color: "#3b82f6", weight: 3, opacity: 0.7, dashArray: "8 8" }
+                    [
+                        [deliveryBoyLoc.lat, deliveryBoyLoc.lng],
+                        [customerLoc.lat, customerLoc.lng],
+                    ],
+                    { color: "#3b82f6", weight: 3, opacity: 0.7, dashArray: "10 6" }
                 ).addTo(map);
 
-                map.fitBounds([
-                    [deliveryBoyLocation.lat, deliveryBoyLocation.lng],
-                    [customerLocation.lat, customerLocation.lng],
-                ], { padding: [40, 40] });
+                map.fitBounds(lineRef.current.getBounds(), { padding: [50, 50] });
             }
 
-            mapObjRef.current = map;
+            mapRef.current = map;
             setMapReady(true);
         });
 
-        // ✅ Cleanup — unmount এ map destroy করো
         return () => {
-            if (mapObjRef.current) {
-                mapObjRef.current.remove();
-                mapObjRef.current = null;
+            if (mapRef.current) {
+                mapRef.current.remove();
+                mapRef.current = null;
+                initializedRef.current = false;
             }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // init once // init once
+    }, []);
 
-    // ── Update delivery boy marker position ────────────────────────────────
+    // ── Update delivery boy marker when location changes ──────────────────
     useEffect(() => {
-        if (!mapObjRef.current || !deliveryBoyLocation) return;
+        if (!mapRef.current || !deliveryBoyLoc) return;
 
-        import("leaflet").then(L => {
+        import("leaflet").then((L) => {
+            const latlng = [deliveryBoyLoc.lat, deliveryBoyLoc.lng];
+
             if (dbMarkerRef.current) {
-                dbMarkerRef.current.setLatLng([deliveryBoyLocation.lat, deliveryBoyLocation.lng]);
+                // Smooth pan
+                dbMarkerRef.current.setLatLng(latlng);
+                mapRef.current.panTo(latlng, { animate: true, duration: 1 });
             }
 
-            if (lineRef.current && customerLocation?.lat) {
-                lineRef.current.setLatLngs([
-                    [deliveryBoyLocation.lat, deliveryBoyLocation.lng],
-                    [customerLocation.lat, customerLocation.lng],
-                ]);
+            // Update line
+            if (lineRef.current && customerLoc?.lat) {
+                lineRef.current.setLatLngs([latlng, [customerLoc.lat, customerLoc.lng]]);
             }
         });
-    }, [deliveryBoyLocation, customerLocation]);
+    }, [deliveryBoyLoc, customerLoc]);
 
     return (
         <div className="bg-card border border-indigo-500/30 rounded-2xl overflow-hidden">
             {/* Header */}
             <div className="bg-indigo-500/10 px-5 py-3.5 flex items-center justify-between border-b border-indigo-500/20">
                 <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+                    <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse inline-block" />
                     <p className="text-indigo-400 font-bold text-sm">Live Delivery Tracking</p>
                 </div>
-                {distance && (
+                {distance && eta && (
                     <p className="text-indigo-300 text-xs font-semibold">
                         {distance} km away · ~{eta} min
                     </p>
                 )}
             </div>
 
-            {/* Delivery Boy Info */}
+            {/* Delivery boy info */}
             {snapshot?.name && (
                 <div className="px-5 py-3 flex items-center gap-3 border-b border-accent-10">
-                    <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center font-black text-indigo-400 uppercase">
+                    <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center font-black text-indigo-400 uppercase text-lg">
                         {snapshot.name[0]}
                     </div>
-                    <div>
+                    <div className="flex-1">
                         <p className="text-heading font-bold text-sm">{snapshot.name}</p>
                         {snapshot.phone && (
-                            <a
-                                href={`tel:${snapshot.phone}`}
-                                className="text-[var(--color-primary)] text-xs flex items-center gap-1 hover:underline"
-                            >
+                            <a href={`tel:${snapshot.phone}`}
+                                className="text-[var(--color-primary)] text-xs flex items-center gap-1 hover:underline">
                                 <Phone size={10} /> {snapshot.phone}
                             </a>
                         )}
                     </div>
-                    <div className="ml-auto flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5">
                         <Truck size={14} className="text-indigo-400" />
                         <span className="text-indigo-400 text-xs font-bold">On the way</span>
                     </div>
                 </div>
             )}
 
-            {/* Leaflet CSS */}
-            <link
-                rel="stylesheet"
-                href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-                crossOrigin=""
-            />
+            {/* Map container — fixed height, position relative */}
+            <div className="relative" style={{ height: "300px" }}>
+                <div
+                    ref={mapContainerRef}
+                    style={{ width: "100%", height: "100%", zIndex: 0 }}
+                />
 
-            {/* Map */}
-            <div ref={mapRef} className="w-full h-72" />
-
-            {/* No location yet */}
-            {!deliveryBoyLocation && (
-                <div className="absolute inset-0 flex items-center justify-center bg-card/80 z-10 rounded-b-2xl">
-                    <div className="text-center px-4">
-                        <Navigation size={28} className="text-body mx-auto mb-2 animate-bounce" />
-                        <p className="text-body text-sm">Waiting for delivery partner location...</p>
+                {/* Overlay: waiting for location */}
+                {!deliveryBoyLoc && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-card/85 z-10">
+                        <Navigation size={28} className="text-indigo-400 mb-2 animate-bounce" />
+                        <p className="text-body text-sm font-semibold">Waiting for partner's location...</p>
+                        <p className="text-body text-xs mt-1 opacity-70">Map will appear when they start moving</p>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 }
@@ -295,9 +336,7 @@ function CancelModal({ orderId, onClose, onCancelled }) {
             <div className="bg-card border border-accent-10 rounded-2xl p-6 max-w-sm w-full space-y-4">
                 <div className="flex items-center justify-between">
                     <h3 className="text-heading font-bold">Cancel Order?</h3>
-                    <button onClick={onClose} className="text-body hover:text-heading transition-colors">
-                        <X size={18} />
-                    </button>
+                    <button onClick={onClose} className="text-body hover:text-heading"><X size={18} /></button>
                 </div>
                 <p className="text-body text-sm">Please tell us why you want to cancel.</p>
                 <textarea
@@ -305,16 +344,16 @@ function CancelModal({ orderId, onClose, onCancelled }) {
                     onChange={e => setReason(e.target.value)}
                     placeholder="Reason (optional)"
                     rows={3}
-                    className="w-full px-3.5 py-2.5 text-sm bg-bg border border-accent-10 rounded-xl text-heading placeholder:text-body outline-none focus:border-[var(--color-danger)] transition-all resize-none"
+                    className="w-full px-3.5 py-2.5 text-sm bg-bg border border-accent-10 rounded-xl text-heading outline-none focus:border-[var(--color-danger)] transition-all resize-none"
                 />
                 {error && <p className="text-[var(--color-danger)] text-xs">{error}</p>}
                 <div className="flex gap-3">
                     <button onClick={onClose}
-                        className="flex-1 py-2.5 rounded-xl border border-accent-10 text-heading text-sm font-semibold hover:bg-[var(--accent-opacity)] transition-colors">
+                        className="flex-1 py-2.5 rounded-xl border border-accent-10 text-heading text-sm font-semibold">
                         Keep Order
                     </button>
                     <button onClick={handleCancel} disabled={loading}
-                        className="flex-1 py-2.5 rounded-xl bg-[var(--color-danger)] text-white text-sm font-semibold hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2">
+                        className="flex-1 py-2.5 rounded-xl bg-[var(--color-danger)] text-white text-sm font-semibold disabled:opacity-60 flex items-center justify-center gap-2">
                         {loading && <Loader2 size={13} className="animate-spin" />}
                         Cancel Order
                     </button>
@@ -337,8 +376,9 @@ export default function OrderDetailPage() {
     const [retryError, setRetryError] = useState(null);
     const [downloading, setDownloading] = useState(false);
     const [invoiceError, setInvoiceError] = useState(null);
+    const [socketStatus, setSocketStatus] = useState("disconnected"); // "connected" | "disconnected"
 
-    // Real-time delivery tracking
+    // Real-time location from delivery boy
     const [deliveryBoyLoc, setDeliveryBoyLoc] = useState(null);
     const socketRef = useRef(null);
 
@@ -354,10 +394,9 @@ export default function OrderDetailPage() {
         }
     }, [orderId]);
 
-    const fetchInvoice = useCallback(async (orderMongoId) => {
-        if (!orderMongoId) return;
+    const fetchInvoice = useCallback(async (mongoId) => {
         try {
-            const { data } = await api.get(`/api/invoices/by-order/${orderMongoId}`);
+            const { data } = await api.get(`/api/invoices/by-order/${mongoId}`);
             setInvoice(data.data || null);
         } catch {
             setInvoice(null);
@@ -365,44 +404,69 @@ export default function OrderDetailPage() {
     }, []);
 
     useEffect(() => { fetchOrder(); }, [fetchOrder]);
+    useEffect(() => { if (order?._id) fetchInvoice(order._id); }, [order?._id, fetchInvoice]);
 
-    useEffect(() => {
-        if (order?._id) fetchInvoice(order._id);
-    }, [order?._id, fetchInvoice]);
-
-    // ── Socket.IO — real-time tracking ────────────────────────────────────
+    // ── Socket.IO setup ───────────────────────────────────────────────────
     useEffect(() => {
         if (!order?.user) return;
 
-        const socket = socketIO(process.env.NEXT_PUBLIC_SOCKET_URL || "", {
+        const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || "";
+
+        const socket = socketIO(SOCKET_URL, {
             withCredentials: true,
-            transports: ["websocket"],
+            transports: ["websocket", "polling"],
+            reconnection: true,
+            reconnectionAttempts: 10,
+            reconnectionDelay: 2000,
         });
+
         socketRef.current = socket;
 
         socket.on("connect", () => {
-            socket.emit("join:user", order.user);
+            console.log("🔌 Socket connected:", socket.id);
+            setSocketStatus("connected");
+            // Join user room — use string to avoid ObjectId mismatch
+            socket.emit("join:user", String(order.user));
         });
 
-        // Real-time status updates
+        socket.on("joined:user", ({ room }) => {
+            console.log("✅ Joined room:", room);
+        });
+
+        socket.on("disconnect", (reason) => {
+            console.log("🔌 Socket disconnected:", reason);
+            setSocketStatus("disconnected");
+        });
+
+        socket.on("reconnect", () => {
+            setSocketStatus("connected");
+            socket.emit("join:user", String(order.user));
+        });
+
+        // Order status changed (prepared, shipped, etc.)
         socket.on("order:statusUpdate", (data) => {
-            if (data.orderId === orderId) {
-                setOrder(prev => prev ? {
+            if (data.orderId !== orderId) return;
+            setOrder(prev => {
+                if (!prev) return prev;
+                return {
                     ...prev,
-                    orderStatus: data.orderStatus,
+                    orderStatus: data.orderStatus || prev.orderStatus,
                     deliveryBoySnapshot: data.deliveryBoySnapshot || prev.deliveryBoySnapshot,
-                } : prev);
-            }
+                };
+            });
         });
 
-        // Real-time location update from delivery boy
+        // Real-time GPS from delivery boy
         socket.on("delivery:locationUpdate", (data) => {
-            if (data.orderId === orderId) {
-                setDeliveryBoyLoc({ lat: data.lat, lng: data.lng });
-            }
+            if (data.orderId !== orderId) return;
+            console.log("📍 Location update:", data.lat, data.lng);
+            setDeliveryBoyLoc({ lat: data.lat, lng: data.lng });
         });
 
-        return () => socket.disconnect();
+        return () => {
+            socket.disconnect();
+            socketRef.current = null;
+        };
     }, [order?.user, orderId]);
 
     // ── Download invoice ──────────────────────────────────────────────────
@@ -414,20 +478,17 @@ export default function OrderDetailPage() {
         }
         setDownloading(true);
         try {
-            const response = await api.get(
-                `/api/invoices/${invoice.invoiceNo}/download`,
-                { responseType: "blob" }
-            );
-            const url = window.URL.createObjectURL(new Blob([response.data], { type: "application/pdf" }));
-            const link = document.createElement("a");
-            link.href = url;
-            link.setAttribute("download", `invoice-${invoice.invoiceNo}.pdf`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
+            const res = await api.get(`/api/invoices/${invoice.invoiceNo}/download`, { responseType: "blob" });
+            const url = window.URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `invoice-${invoice.invoiceNo}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
             window.URL.revokeObjectURL(url);
         } catch {
-            setInvoiceError("Download failed. Please try again.");
+            setInvoiceError("Download failed.");
             setTimeout(() => setInvoiceError(null), 4000);
         } finally {
             setDownloading(false);
@@ -443,26 +504,23 @@ export default function OrderDetailPage() {
             if (data.data.method === "bkash") window.location.href = data.data.bkashURL;
             if (data.data.method === "sslcommerz") window.location.href = data.data.gatewayURL;
         } catch (err) {
-            setRetryError(err.response?.data?.message || "Payment failed. Please try again.");
+            setRetryError(err.response?.data?.message || "Payment failed.");
             setRetrying(false);
         }
     };
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-bg flex items-center justify-center">
-                <Loader2 size={28} className="animate-spin text-[var(--color-primary)]" />
-            </div>
-        );
-    }
+    // ── Loading / not found ────────────────────────────────────────────────
+    if (loading) return (
+        <div className="min-h-screen bg-bg flex items-center justify-center">
+            <Loader2 size={28} className="animate-spin text-[var(--color-primary)]" />
+        </div>
+    );
 
-    if (!order) {
-        return (
-            <div className="min-h-screen bg-bg flex items-center justify-center">
-                <p className="text-body">Order not found.</p>
-            </div>
-        );
-    }
+    if (!order) return (
+        <div className="min-h-screen bg-bg flex items-center justify-center">
+            <p className="text-body">Order not found.</p>
+        </div>
+    );
 
     const cfg = STATUS_CONFIG[order.orderStatus] || STATUS_CONFIG.pending;
     const payCfg = PAYMENT_STATUS[order.paymentStatus] || PAYMENT_STATUS.pending;
@@ -472,7 +530,6 @@ export default function OrderDetailPage() {
     const canRetry = order.paymentMethod !== "cod"
         && ["failed", "pending"].includes(order.paymentStatus)
         && !["cancelled", "delivered"].includes(order.orderStatus);
-
     const isShipped = order.orderStatus === "shipped";
     const payLabel = { bkash: "bKash", sslcommerz: "SSL Commerce", cod: "Cash on Delivery" }[order.paymentMethod] || order.paymentMethod;
 
@@ -480,32 +537,37 @@ export default function OrderDetailPage() {
         <div className="min-h-screen bg-bg">
             <div className="max-w-3xl mx-auto px-4 lg:px-8 py-8 space-y-5">
 
-                {/* ── Header ────────────────────────────────────────────── */}
+                {/* ── Header ── */}
                 <div className="flex flex-wrap items-center gap-3">
                     <button onClick={() => router.push("/orders")} className="text-body hover:text-heading transition-colors">
                         <ArrowLeft size={20} />
                     </button>
                     <div className="flex-1 min-w-[200px]">
                         <h1 className="text-heading font-black text-xl">{order.orderId}</h1>
-                        <p className="text-body text-xs mt-0.5">
-                            Placed {new Date(order.createdAt).toLocaleDateString("en-BD", {
-                                day: "numeric", month: "long", year: "numeric",
-                            })}
-                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <p className="text-body text-xs">
+                                Placed {new Date(order.createdAt).toLocaleDateString("en-BD", {
+                                    day: "numeric", month: "long", year: "numeric",
+                                })}
+                            </p>
+                            {/* Socket status indicator */}
+                            <span title={socketStatus === "connected" ? "Live updates active" : "Reconnecting..."}>
+                                {socketStatus === "connected"
+                                    ? <Wifi size={11} className="text-emerald-400" />
+                                    : <WifiOff size={11} className="text-gray-400" />}
+                            </span>
+                        </div>
                     </div>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={handleDownloadInvoice}
                             disabled={downloading || !invoice}
-                            title={invoice ? `Download Invoice ${invoice.invoiceNo}` : "Invoice not available yet"}
                             className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-bold transition-all
                                 ${invoice
                                     ? "border-[var(--color-primary)]/30 bg-card text-heading hover:bg-[var(--color-primary)]/8"
                                     : "border-accent-10 bg-card text-body opacity-50 cursor-not-allowed"}`}
                         >
-                            {downloading
-                                ? <Loader2 size={14} className="animate-spin" />
-                                : <Download size={14} className={invoice ? "text-[var(--color-primary)]" : "text-body"} />}
+                            {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                             {invoice ? "Invoice" : "No Invoice"}
                         </button>
                         <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${cfg.color} ${cfg.bg}`}>
@@ -514,22 +576,19 @@ export default function OrderDetailPage() {
                     </div>
                 </div>
 
+                {/* Invoice error */}
                 {invoiceError && (
-                    <div className="p-3 rounded-xl bg-[var(--color-danger)]/8 border border-[var(--color-danger)]/20 text-[var(--color-danger)] text-sm">
+                    <div className="p-3 rounded-xl bg-red-500/8 border border-red-500/20 text-red-400 text-sm">
                         {invoiceError}
                     </div>
                 )}
 
+                {/* Invoice banner */}
                 {invoice && (
                     <div className="flex items-center justify-between p-3 rounded-xl bg-green-500/8 border border-green-500/20">
                         <div className="flex items-center gap-2 text-green-600 text-xs font-semibold">
                             <Download size={13} />
                             Invoice #{invoice.invoiceNo} available
-                            {invoice.emailSentAt && (
-                                <span className="text-green-500 font-normal ml-1">
-                                    · Email sent {new Date(invoice.emailSentAt).toLocaleDateString("en-BD", { day: "numeric", month: "short" })}
-                                </span>
-                            )}
                         </div>
                         <button onClick={handleDownloadInvoice} disabled={downloading}
                             className="text-green-600 text-xs font-bold hover:underline">
@@ -538,7 +597,7 @@ export default function OrderDetailPage() {
                     </div>
                 )}
 
-                {/* ── Retry Payment Banner ───────────────────────────────── */}
+                {/* ── Retry Payment ── */}
                 {canRetry && (
                     <div className="bg-[var(--color-primary)]/8 border border-[var(--color-primary)]/25 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <div className="flex items-start gap-3">
@@ -548,15 +607,13 @@ export default function OrderDetailPage() {
                             <div>
                                 <p className="text-heading font-bold text-sm">Payment Incomplete</p>
                                 <p className="text-body text-xs mt-0.5">
-                                    Your payment is {order.paymentStatus}. Complete it to confirm your order.
+                                    Payment is {order.paymentStatus}. Complete it to confirm your order.
                                 </p>
-                                {retryError && (
-                                    <p className="text-[var(--color-danger)] text-xs mt-1 font-medium">{retryError}</p>
-                                )}
+                                {retryError && <p className="text-[var(--color-danger)] text-xs mt-1">{retryError}</p>}
                             </div>
                         </div>
                         <button onClick={handleRetryPayment} disabled={retrying}
-                            className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--color-primary)] hover:bg-[var(--color-secondary)] text-white text-sm font-bold transition-colors disabled:opacity-60 whitespace-nowrap">
+                            className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--color-primary)] text-white text-sm font-bold disabled:opacity-60">
                             {retrying
                                 ? <><Loader2 size={14} className="animate-spin" /> Processing...</>
                                 : <><RefreshCcw size={14} /> Pay Now — ৳{order.total?.toLocaleString()}</>}
@@ -564,16 +621,16 @@ export default function OrderDetailPage() {
                     </div>
                 )}
 
-                {/* ── Real-time Delivery Tracker ─────────────────────────── */}
+                {/* ── Real-time Map (only when shipped) ── */}
                 {isShipped && (
                     <DeliveryTracker
                         order={order}
-                        deliveryBoyLocation={deliveryBoyLoc}
-                        customerLocation={order.customerLocation}
+                        deliveryBoyLoc={deliveryBoyLoc}
+                        customerLoc={order.customerLocation}
                     />
                 )}
 
-                {/* ── Order Prepared Banner ──────────────────────────────── */}
+                {/* ── Prepared Banner ── */}
                 {order.orderStatus === "prepared" && (
                     <div className="flex items-center gap-3 p-4 bg-cyan-500/10 border border-cyan-500/30 rounded-2xl">
                         <Package size={20} className="text-cyan-400 flex-shrink-0" />
@@ -584,7 +641,7 @@ export default function OrderDetailPage() {
                     </div>
                 )}
 
-                {/* ── Items ─────────────────────────────────────────────── */}
+                {/* ── Items ── */}
                 <div className="bg-card border border-accent-10 rounded-2xl overflow-hidden">
                     <div className="px-5 py-3.5 border-b border-accent-10">
                         <h2 className="text-heading font-bold text-sm flex items-center gap-2">
@@ -646,7 +703,7 @@ export default function OrderDetailPage() {
                     </div>
                 </div>
 
-                {/* ── Address + Payment ──────────────────────────────────── */}
+                {/* ── Address + Payment ── */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="bg-card border border-accent-10 rounded-2xl p-4">
                         <h2 className="text-heading font-bold text-sm flex items-center gap-2 mb-3">
@@ -680,9 +737,7 @@ export default function OrderDetailPage() {
                             {order.transactionId && (
                                 <div className="flex justify-between">
                                     <span className="text-body">Trx ID</span>
-                                    <span className="text-heading font-mono text-xs truncate max-w-[120px]">
-                                        {order.transactionId}
-                                    </span>
+                                    <span className="text-heading font-mono text-xs truncate max-w-[120px]">{order.transactionId}</span>
                                 </div>
                             )}
                             {order.paidAt && (
@@ -697,7 +752,7 @@ export default function OrderDetailPage() {
                             )}
                         </div>
 
-                        {/* Delivery boy info (visible after accept) */}
+                        {/* Delivery partner info */}
                         {order.deliveryBoySnapshot?.name && (
                             <div className="mt-3 pt-3 border-t border-accent-10">
                                 <p className="text-body text-xs font-bold uppercase tracking-wider mb-1.5">Delivery Partner</p>
@@ -706,10 +761,8 @@ export default function OrderDetailPage() {
                                     {order.deliveryBoySnapshot.name}
                                 </p>
                                 {order.deliveryBoySnapshot.phone && (
-                                    <a
-                                        href={`tel:${order.deliveryBoySnapshot.phone}`}
-                                        className="text-body text-xs flex items-center gap-1.5 mt-0.5 hover:text-[var(--color-primary)] transition-colors"
-                                    >
+                                    <a href={`tel:${order.deliveryBoySnapshot.phone}`}
+                                        className="text-body text-xs flex items-center gap-1.5 mt-0.5 hover:text-[var(--color-primary)] transition-colors">
                                         <Phone size={11} className="text-[var(--color-primary)]" />
                                         {order.deliveryBoySnapshot.phone}
                                     </a>
@@ -719,7 +772,7 @@ export default function OrderDetailPage() {
                     </div>
                 </div>
 
-                {/* ── Timeline ───────────────────────────────────────────── */}
+                {/* ── Timeline ── */}
                 {order.timeline?.length > 0 && (
                     <div className="bg-card border border-accent-10 rounded-2xl p-5">
                         <h2 className="text-heading font-bold text-sm flex items-center gap-2 mb-5">
@@ -729,13 +782,12 @@ export default function OrderDetailPage() {
                     </div>
                 )}
 
-                {/* ── Cancel ─────────────────────────────────────────────── */}
+                {/* ── Cancel ── */}
                 {canCancel && (
                     <div className="flex justify-end">
                         <button
                             onClick={() => setShowCancel(true)}
-                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[var(--color-danger)]/30 text-[var(--color-danger)] text-sm font-semibold hover:bg-[var(--color-danger)]/8 transition-colors"
-                        >
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[var(--color-danger)]/30 text-[var(--color-danger)] text-sm font-semibold hover:bg-[var(--color-danger)]/8 transition-colors">
                             <XCircle size={15} /> Cancel Order
                         </button>
                     </div>
