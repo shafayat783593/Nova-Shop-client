@@ -13,6 +13,8 @@ import {
 import AddToCartButton from "../../components/AddToCartButton";
 import WishlistButton from "../../components/Wishlistbutton";
 import c, { useCart } from "@/app/context/Cartcontext";
+import { useAuth } from "@/app/context/AuthContext";
+
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 function Skeleton({ className = "" }) {
     return (
@@ -371,8 +373,8 @@ function ReviewCard({ review }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ProductPage() {
     const { slug } = useParams();
-    console.log("Product slug:..................................", slug);
     const router = useRouter();
+    const {  isAuth } = useAuth();
 
     const [product, setProduct] = useState(null);
     const [promotions, setPromotions] = useState([]);
@@ -503,7 +505,7 @@ export default function ProductPage() {
 
     return (
         <div className="min-h-screen bg-bg">
-         
+
 
             <div className="max-w-7xl mx-auto px-4 py-6 lg:px-8">
 
@@ -628,57 +630,43 @@ export default function ProductPage() {
                             />
 
                             <AddToCartButton productId={product._id} variantId={selectedVariant?._id} qty={qty} />
-                           
+
 
 
 
                             <button
                                 onClick={() => {
                                     if (!inStock) return;
+
+                                    // loading থাকলে কিছুই করবো না
+                                    if (loading) return;
+
                                     const params = new URLSearchParams({
                                         mode: "buynow",
                                         productId: product._id,
                                         qty: String(qty),
                                     });
-                                    if (selectedVariant?._id) params.set("variantId", selectedVariant._id);
-                                    router.push(`/checkout?${params.toString()}`);
+
+                                    if (selectedVariant?._id) {
+                                        params.set("variantId", selectedVariant._id);
+                                    }
+
+                                    // 🔥 এখানে main logic
+                                    if (isAuth) {
+                                        router.push(`/checkout?${params.toString()}`);
+                                    } else {
+                                        router.push(`/login?redirect=/checkout?${params.toString()}`);
+                                    }
                                 }}
-                                disabled={!inStock}
+                                disabled={!inStock || loading}
                                 className="flex-1 min-w-[140px] h-11 rounded-xl font-bold text-sm border-2 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                                 Buy Now
                             </button>
-                        
-
-
-
-
-{/* 
-                        {showBuyNow && (
-                            <BuyNowModal
-                                product={product}
-                                selectedVariant={selectedVariant}
-                                qty={qty}
-                                onClose={() => setShowBuyNow(false)}
-                            />
-                        )} */}
-
-
-
-                            {/* <button
-                                onClick={handleBuyNow}
-                                disabled={!inStock || buyingNow}
-                                className="flex-1 min-w-[140px] h-11 rounded-xl font-bold text-sm border-2 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                            >
-                                {buyingNow
-                                    ? <><Loader2 size={15} className="animate-spin" /> Adding...</>
-                                    : "Buy Now"
-                                }
-                            </button> */}
 
                             <WishlistButton
                                 productId={product._id}
-                                product={product}   
+                                product={product}
                                 size="icon"
                             />
                             <button
