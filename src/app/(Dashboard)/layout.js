@@ -22,7 +22,6 @@ export default function DashboardLayout({ children }) {
 
     if (loading) return <Loading/>
 
-    // ✅ isAuth না হলে কিছু render করবে না (useEffect redirect করবে)
     if (!isAuth) return null;
 
     return (

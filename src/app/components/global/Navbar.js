@@ -42,7 +42,6 @@ const ACCOUNT_LINKS = [
   { icon: CreditCard, label: "Payment Methods", href: "/account/payment", badge: null },
   // { icon: Settings, label: "Settings", href: "/account/settings", badge: null },
 ];
-
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Role → dashboard redirect
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -55,9 +54,10 @@ const ROLE_REDIRECT = {
 
 function getDashboardHref(user) {
   const role = (user?.role || "customer").toLowerCase();
-  return ROLE_REDIRECT[role] || "/customer";
-}
+  if (role === "customer") return "/";
 
+  return ROLE_REDIRECT[role] || "/";
+}
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Helpers
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -324,6 +324,7 @@ export default function Navbar() {
   const megaTimer = useRef(null);
   const profileRef = useRef(null);
   const searchRef = useRef(null);
+const isCustomer = user?.role?.toLowerCase() === "customer";
 
   // TanStack Query
   const { data: profileData, isLoading: profileLoading } = useQuery({
@@ -496,7 +497,7 @@ export default function Navbar() {
             ))}
 
             {/* ✅ Dashboard link — only when logged in */}
-            {isAuth && (
+            {isAuth && !isCustomer && (
               <Link href={dashHref}
                 className="nb-link flex items-center gap-1.5 px-4 py-2
                            text-sm font-semibold text-body hover:text-heading

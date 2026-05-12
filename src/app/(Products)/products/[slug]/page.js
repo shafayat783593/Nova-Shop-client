@@ -651,7 +651,7 @@ export default function ProductPage() {
                                         params.set("variantId", selectedVariant._id);
                                     }
 
-                                    // 🔥 এখানে main logic
+                                  
                                     if (isAuth) {
                                         router.push(`/checkout?${params.toString()}`);
                                     } else {

@@ -12,7 +12,7 @@ import {
 import Loading from "@/app/components/global/Loading";
 
 // ─── Backend URL ──────────────────────────────────────────────────────────────
-const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const fmtDate = (d) =>
@@ -103,30 +103,30 @@ function ActiveOrderCard({ order, onDelivered, socketRef, deliveryBoyId }) {
     }, []);
 
     // ── Emit location via socket ──────────────────────────────────────────
- const emitLocation = useCallback((lat, lng) => {
-    const socket = socketRef.current;
-    
-    console.log("Socket state:", {
-        exists: !!socket,
-        connected: socket?.connected,
-        id: socket?.id,
-    });
-    
-    if (!socket?.connected) {
-        console.warn("❌ Socket not connected!");
-        return;
-    }
+    const emitLocation = useCallback((lat, lng) => {
+        const socket = socketRef.current;
 
-    const payload = {
-        orderId: order.orderId,
-        deliveryBoyId: String(deliveryBoyId),  // ✅ string guarantee
-        lat,
-        lng,
-    };
-    
-    console.log("📍 Emitting:", payload);
-    socket.emit("delivery:locationUpdate", payload);
-}, [order.orderId, deliveryBoyId, socketRef]);
+        console.log("Socket state:", {
+            exists: !!socket,
+            connected: socket?.connected,
+            id: socket?.id,
+        });
+
+        if (!socket?.connected) {
+            console.warn("❌ Socket not connected!");
+            return;
+        }
+
+        const payload = {
+            orderId: order.orderId,
+            deliveryBoyId: String(deliveryBoyId),  // ✅ string guarantee
+            lat,
+            lng,
+        };
+
+        console.log("📍 Emitting:", payload);
+        socket.emit("delivery:locationUpdate", payload);
+    }, [order.orderId, deliveryBoyId, socketRef]);
 
     // ── Toggle continuous GPS tracking ────────────────────────────────────
     const handleToggleTracking = () => {
@@ -386,22 +386,22 @@ export default function DeliveryDashboardPage() {
 
         socketRef.current = socket;
 
-   const deliveryBoyId = String(profile?.deliveryBoyId || profile?._id || "");
+        const deliveryBoyId = String(profile?.deliveryBoyId || profile?._id || "");
 
-// ✅ এটা দেখুন — কি আসছে?
-console.log("🔑 deliveryBoyId for socket:", deliveryBoyId);
-console.log("🔑 full profile:", profile);
+        // ✅ এটা দেখুন — কি আসছে?
+        console.log("🔑 deliveryBoyId for socket:", deliveryBoyId);
+        console.log("🔑 full profile:", profile);
 
-socket.on("connect", () => {
-    console.log("✅ Delivery socket connected:", socket.id);
-    setSocketConnected(true);
-    console.log("📤 Emitting join:delivery with:", deliveryBoyId);
-    socket.emit("join:delivery", deliveryBoyId);
-});
+        socket.on("connect", () => {
+            console.log("✅ Delivery socket connected:", socket.id);
+            setSocketConnected(true);
+            console.log("📤 Emitting join:delivery with:", deliveryBoyId);
+            socket.emit("join:delivery", deliveryBoyId);
+        });
 
-socket.on("joined:delivery", (data) => {
-    console.log("✅ joined:delivery confirmed:", data);
-});
+        socket.on("joined:delivery", (data) => {
+            console.log("✅ joined:delivery confirmed:", data);
+        });
 
         socket.on("connect_error", (err) => {
             console.error("❌ Socket connect_error:", err.message, "URL:", SOCKET_URL);

@@ -8,7 +8,7 @@ import Footer from './Footer';
 export default function LayoutWrapper({ children }) {
     const pathname = usePathname();
 
-    const hideNavFooter = ['/customer',"/admin","/vendor", '/login', '/register', '/verify', "/reset-password","/Forgot-password"].some((path) =>
+    const hideNavFooter = ['/customer',"/admin","/vendor", "/deliveryboy", '/login', '/register', '/verify', "/reset-password","/Forgot-password"].some((path) =>
         pathname.startsWith(path)
     );
 

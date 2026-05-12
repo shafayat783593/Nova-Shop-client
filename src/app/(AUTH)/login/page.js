@@ -73,7 +73,7 @@ const LoginPage = () => {
         admin: '/admin',
         vendor: '/vendor',
         deliveryboy: '/deliveryboy',
-        customer: '/customer',
+        customer: '/',
       };
 
       const role = loggedInUser?.role;

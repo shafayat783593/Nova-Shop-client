@@ -9,6 +9,7 @@ import {
     CheckSquare, Square, MinusSquare
 } from "lucide-react";
 import { useCart } from "../../context/Cartcontext";
+import { useAuth } from "@/app/context/AuthContext";
 
 // ─── Shimmer skeleton ─────────────────────────────────────────────────────────
 function Shimmer({ className = "" }) {
@@ -396,6 +397,7 @@ function OrderSummary({ cart, summary, onCoupon, onRemoveCoupon, onCheckout }) {
 // ─── Main Cart Page ───────────────────────────────────────────────────────────
 export default function CartPage() {
     const router = useRouter();
+    const { isAuth } = useAuth();
     const {
         cart, loading,
         updateQty, removeItem, removeSelectedItems,
@@ -404,6 +406,16 @@ export default function CartPage() {
         toggleSelectItem, selectAll, deselectAll,
         selectedSummary,
     } = useCart();
+
+    const handleCheckout = () => {
+        if (isAuth) {
+            // ✅ logged in → checkout
+            router.push("/checkout");
+        } else {
+            // ❌ not logged in → login + redirect back
+            router.push("/login?redirect=/checkout");
+        }
+    };
 
     if (loading) return <CartSkeleton />;
 
@@ -577,7 +589,7 @@ export default function CartPage() {
                             summary={summary}
                             onCoupon={applyCoupon}
                             onRemoveCoupon={removeCoupon}
-                            onCheckout={() => router.push("/checkout")}
+                            onCheckout={handleCheckout}
                         />
                     </div>
                 </div>
