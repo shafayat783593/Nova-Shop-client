@@ -7,14 +7,12 @@ import {
     Loader2, Package, CheckCircle2, MapPin, Phone, Star,
     ToggleLeft, ToggleRight, Navigation, AlertCircle,
     Truck, ChevronRight, RefreshCw, Check, X, Clock,
-    Wifi, WifiOff,
+    Wifi, WifiOff, Zap, TrendingUp,
 } from "lucide-react";
 import Loading from "@/app/components/global/Loading";
 
-// ─── Backend URL ──────────────────────────────────────────────────────────────
 const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 const fmtDate = (d) =>
     new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 
@@ -22,13 +20,14 @@ const fmtDate = (d) =>
 function Toast({ msg, type }) {
     if (!msg) return null;
     return (
-        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3 rounded-2xl shadow-xl text-sm font-semibold border
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-6 py-3.5 rounded-2xl shadow-2xl text-sm font-semibold border backdrop-blur-xl
             ${type === "error"
-                ? "bg-card border-red-500/30 text-red-400"
-                : "bg-card border-accent-10 text-heading"}`}>
+                ? "bg-[#1a0a0a]/90 border-red-500/40 text-red-300"
+                : "bg-card/90 border-emerald-500/30 text-emerald-300"}`}
+            style={{ minWidth: 220 }}>
             {type === "error"
-                ? <AlertCircle size={14} className="text-red-400" />
-                : <CheckCircle2 size={14} className="text-emerald-400" />}
+                ? <AlertCircle size={15} className="text-red-400" />
+                : <CheckCircle2 size={15} className="text-emerald-400" />}
             {msg}
         </div>
     );
@@ -46,39 +45,47 @@ function AssignmentCard({ order, onRespond }) {
     };
 
     return (
-        <div className="bg-card border-2 border-yellow-400/40 rounded-2xl overflow-hidden">
-            <div className="bg-yellow-400/10 px-5 py-3 flex items-center gap-2 border-b border-yellow-400/20">
-                <Clock size={14} className="text-yellow-400" />
-                <p className="text-yellow-400 font-bold text-sm">New delivery request!</p>
+        <div className="relative bg-card rounded-3xl overflow-hidden border border-yellow-400/30"
+            style={{ boxShadow: "0 0 0 1px rgba(250,204,21,0.08), 0 8px 32px rgba(0,0,0,0.3)" }}>
+            {/* Glow strip */}
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-yellow-400 to-transparent" />
+            <div className="px-6 py-4 flex items-center gap-3 border-b border-yellow-400/15">
+                <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-400" />
+                </span>
+                <p className="text-yellow-400 font-bold text-sm tracking-wide">New Delivery Request</p>
+                <span className="ml-auto text-yellow-400/50 text-xs font-mono">{order.orderId}</span>
             </div>
-            <div className="px-5 py-4 space-y-3">
-                <div className="flex items-center justify-between">
-                    <p className="text-heading font-black text-base">{order.orderId}</p>
-                    <p className="text-[var(--color-primary)] font-black text-lg">৳{Number(order.total).toFixed(0)}</p>
+            <div className="px-6 py-5 space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-0.5">
+                        <p className="text-heading font-black text-base">{addr?.fullName}</p>
+                        <p className="text-body text-xs">{order.items?.length || 0} items · {order.paymentMethod?.toUpperCase()}</p>
+                    </div>
+                    <p className="text-[var(--color-primary)] font-black text-2xl leading-none">৳{Number(order.total).toFixed(0)}</p>
                 </div>
-                <div className="bg-bg rounded-xl p-3 space-y-1.5">
-                    <p className="text-heading font-bold text-sm">{addr?.fullName}</p>
-                    <div className="flex items-start gap-1.5">
-                        <MapPin size={11} className="text-[var(--color-primary)] flex-shrink-0 mt-0.5" />
+                <div className="bg-bg/60 rounded-2xl p-4 space-y-2 border border-accent-10">
+                    <div className="flex items-start gap-2">
+                        <MapPin size={12} className="text-[var(--color-primary)] flex-shrink-0 mt-0.5" />
                         <p className="text-body text-xs leading-relaxed">
                             {[addr?.addressLine, addr?.area, addr?.district, addr?.division].filter(Boolean).join(", ")}
                         </p>
                     </div>
                     {addr?.phone && (
                         <a href={`tel:${addr.phone}`}
-                            className="flex items-center gap-1.5 text-xs text-[var(--color-primary)] hover:underline">
+                            className="flex items-center gap-2 text-xs text-[var(--color-primary)] hover:underline w-fit">
                             <Phone size={11} /> {addr.phone}
                         </a>
                     )}
                 </div>
-                <p className="text-body text-xs">{order.items?.length || 0} item(s) · {order.paymentMethod?.toUpperCase()}</p>
-                <div className="flex gap-3">
+                <div className="grid grid-cols-2 gap-3 pt-1">
                     <button onClick={() => handleAction("reject")} disabled={!!loading}
-                        className="flex-1 py-2.5 border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold rounded-xl text-sm disabled:opacity-60 flex items-center justify-center gap-2">
+                        className="py-3 border border-red-500/25 bg-red-500/8 hover:bg-red-500/15 text-red-400 font-bold rounded-2xl text-sm disabled:opacity-60 flex items-center justify-center gap-2 transition-all">
                         {loading === "reject" ? <Loader2 size={13} className="animate-spin" /> : <X size={13} />} Reject
                     </button>
                     <button onClick={() => handleAction("accept")} disabled={!!loading}
-                        className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl text-sm disabled:opacity-60 flex items-center justify-center gap-2">
+                        className="py-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold rounded-2xl text-sm disabled:opacity-60 flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-500/20">
                         {loading === "accept" ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Accept
                     </button>
                 </div>
@@ -97,81 +104,43 @@ function ActiveOrderCard({ order, onDelivered, socketRef, deliveryBoyId }) {
     const watchIdRef = useRef(null);
     const addr = order.shippingAddress;
 
-    // Stop tracking on unmount
     useEffect(() => () => {
         if (watchIdRef.current != null) navigator.geolocation?.clearWatch(watchIdRef.current);
     }, []);
 
-    // ── Emit location via socket ──────────────────────────────────────────
     const emitLocation = useCallback((lat, lng) => {
         const socket = socketRef.current;
-
-        console.log("Socket state:", {
-            exists: !!socket,
-            connected: socket?.connected,
-            id: socket?.id,
-        });
-
-        if (!socket?.connected) {
-            console.warn("❌ Socket not connected!");
-            return;
-        }
-
-        const payload = {
+        if (!socket?.connected) return;
+        socket.emit("delivery:locationUpdate", {
             orderId: order.orderId,
-            deliveryBoyId: String(deliveryBoyId),  // ✅ string guarantee
-            lat,
-            lng,
-        };
-
-        console.log("📍 Emitting:", payload);
-        socket.emit("delivery:locationUpdate", payload);
+            deliveryBoyId: String(deliveryBoyId),
+            lat, lng,
+        });
     }, [order.orderId, deliveryBoyId, socketRef]);
 
-    // ── Toggle continuous GPS tracking ────────────────────────────────────
     const handleToggleTracking = () => {
-        if (!navigator.geolocation) {
-            setGpsError("GPS not supported");
-            return;
-        }
+        if (!navigator.geolocation) { setGpsError("GPS not supported"); return; }
         setGpsError("");
-
         if (tracking) {
             navigator.geolocation.clearWatch(watchIdRef.current);
             watchIdRef.current = null;
             setTracking(false);
             return;
         }
-
         setTracking(true);
         watchIdRef.current = navigator.geolocation.watchPosition(
-            ({ coords }) => {
-                setGpsError("");
-                emitLocation(coords.latitude, coords.longitude);
-            },
-            (err) => {
-                setGpsError(`GPS: ${err.message}`);
-                setTracking(false);
-                watchIdRef.current = null;
-            },
+            ({ coords }) => { setGpsError(""); emitLocation(coords.latitude, coords.longitude); },
+            (err) => { setGpsError(`GPS: ${err.message}`); setTracking(false); watchIdRef.current = null; },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 }
         );
     };
 
-    // ── Send location once ────────────────────────────────────────────────
     const handleSendOnce = () => {
         if (!navigator.geolocation) { setGpsError("GPS not supported"); return; }
-        setGpsError("");
-        setSendingOnce(true);
+        setGpsError(""); setSendingOnce(true);
         navigator.geolocation.getCurrentPosition(
-            ({ coords }) => {
-                emitLocation(coords.latitude, coords.longitude);
-                setSendingOnce(false);
-            },
-            (err) => {
-                setGpsError(`GPS: ${err.message}`);
-                setSendingOnce(false);
-            },
+            ({ coords }) => { emitLocation(coords.latitude, coords.longitude); setSendingOnce(false); },
+            (err) => { setGpsError(`GPS: ${err.message}`); setSendingOnce(false); },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
     };
@@ -180,8 +149,7 @@ function ActiveOrderCard({ order, onDelivered, socketRef, deliveryBoyId }) {
         if (!confirm(`Confirm delivery of ${order.orderId}?`)) return;
         if (watchIdRef.current != null) {
             navigator.geolocation?.clearWatch(watchIdRef.current);
-            watchIdRef.current = null;
-            setTracking(false);
+            watchIdRef.current = null; setTracking(false);
         }
         setDelivering(true);
         try {
@@ -189,47 +157,49 @@ function ActiveOrderCard({ order, onDelivered, socketRef, deliveryBoyId }) {
             onDelivered(order.orderId);
         } catch (err) {
             alert(err.response?.data?.message || "Failed to update");
-        } finally {
-            setDelivering(false);
-        }
+        } finally { setDelivering(false); }
     };
 
     return (
-        <div className="bg-card border border-accent-10 rounded-2xl overflow-hidden hover:shadow-md transition-all">
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 cursor-pointer select-none"
+        <div className="bg-card border border-accent-10 rounded-3xl overflow-hidden transition-all hover:border-[var(--color-primary)]/30"
+            style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.2)" }}>
+            <div className="flex items-center gap-4 px-6 py-5 cursor-pointer select-none"
                 onClick={() => setExpanded(v => !v)}>
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-yellow-400/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <Truck size={18} className="text-yellow-400" />
-                    </div>
-                    <div>
-                        <p className="text-heading font-bold text-sm">{order.orderId}</p>
-                        <p className="text-body text-xs">{fmtDate(order.createdAt)}</p>
-                    </div>
+                {/* Icon */}
+                <div className="w-12 h-12 rounded-2xl bg-yellow-400/10 border border-yellow-400/20 flex items-center justify-center flex-shrink-0">
+                    <Truck size={20} className="text-yellow-400" />
                 </div>
-                <div className="flex items-center gap-3">
-                    {tracking && (
-                        <span className="flex items-center gap-1 text-emerald-400 text-xs font-bold">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
-                            Live
-                        </span>
-                    )}
-                    <p className="text-[var(--color-primary)] font-black">৳{Number(order.total).toFixed(0)}</p>
-                    <ChevronRight size={14} className={`text-body transition-transform duration-200 ${expanded ? "rotate-90" : ""}`} />
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                        <p className="text-heading font-bold text-sm">{order.orderId}</p>
+                        {tracking && (
+                            <span className="flex items-center gap-1 bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> LIVE
+                            </span>
+                        )}
+                    </div>
+                    <p className="text-body text-xs mt-0.5">{addr?.fullName} · {addr?.district}</p>
+                </div>
+                {/* Right */}
+                <div className="flex items-center gap-3 flex-shrink-0">
+                    <p className="text-[var(--color-primary)] font-black text-lg">৳{Number(order.total).toFixed(0)}</p>
+                    <div className={`w-7 h-7 rounded-xl bg-accent-10 flex items-center justify-center transition-transform duration-300 ${expanded ? "rotate-90" : ""}`}>
+                        <ChevronRight size={13} className="text-body" />
+                    </div>
                 </div>
             </div>
 
             {expanded && (
-                <div className="border-t border-accent-10 px-5 pb-5 pt-4 space-y-4">
+                <div className="border-t border-accent-10 px-6 pb-6 pt-5 space-y-5">
                     {/* Items */}
                     <div>
-                        <p className="text-body text-[10px] font-semibold uppercase tracking-widest mb-2">Items</p>
-                        <div className="bg-bg rounded-xl p-3 space-y-1.5">
+                        <p className="text-body text-[10px] font-bold uppercase tracking-widest mb-3">Order Items</p>
+                        <div className="bg-bg/60 rounded-2xl p-4 border border-accent-10 space-y-2">
                             {order.items?.map((item, i) => (
                                 <div key={i} className="flex items-center justify-between">
-                                    <p className="text-heading text-xs font-medium truncate max-w-[210px]">{item.nameSnapshot}</p>
-                                    <span className="text-body text-xs flex-shrink-0 ml-2">×{item.quantity}</span>
+                                    <p className="text-heading text-xs font-medium truncate max-w-[65%]">{item.nameSnapshot}</p>
+                                    <span className="text-body text-xs bg-accent-10 px-2 py-0.5 rounded-full">×{item.quantity}</span>
                                 </div>
                             ))}
                         </div>
@@ -237,10 +207,10 @@ function ActiveOrderCard({ order, onDelivered, socketRef, deliveryBoyId }) {
 
                     {/* Address */}
                     <div>
-                        <p className="text-body text-[10px] font-semibold uppercase tracking-widest mb-2">Deliver to</p>
-                        <div className="bg-bg rounded-xl p-3 space-y-2">
+                        <p className="text-body text-[10px] font-bold uppercase tracking-widest mb-3">Deliver To</p>
+                        <div className="bg-bg/60 rounded-2xl p-4 border border-accent-10 space-y-2.5">
                             <p className="text-heading text-sm font-bold">{addr?.fullName}</p>
-                            <div className="flex items-start gap-1.5">
+                            <div className="flex items-start gap-2">
                                 <MapPin size={12} className="text-[var(--color-primary)] flex-shrink-0 mt-0.5" />
                                 <p className="text-body text-xs leading-relaxed">
                                     {[addr?.addressLine, addr?.area, addr?.district, addr?.division].filter(Boolean).join(", ")}
@@ -248,7 +218,7 @@ function ActiveOrderCard({ order, onDelivered, socketRef, deliveryBoyId }) {
                             </div>
                             {addr?.phone && (
                                 <a href={`tel:${addr.phone}`}
-                                    className="flex items-center gap-1.5 text-xs text-[var(--color-primary)] hover:underline"
+                                    className="inline-flex items-center gap-2 text-xs text-[var(--color-primary)] hover:underline"
                                     onClick={e => e.stopPropagation()}>
                                     <Phone size={11} /> {addr.phone}
                                 </a>
@@ -256,49 +226,47 @@ function ActiveOrderCard({ order, onDelivered, socketRef, deliveryBoyId }) {
                         </div>
                     </div>
 
-                    {/* Payment */}
+                    {/* Badges */}
                     <div className="flex gap-2 flex-wrap">
-                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full
-                            ${order.paymentMethod === "cod" ? "bg-yellow-400/10 text-yellow-400" : "bg-emerald-400/10 text-emerald-400"}`}>
+                        <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full border
+                            ${order.paymentMethod === "cod" ? "bg-yellow-400/10 border-yellow-400/25 text-yellow-400" : "bg-emerald-400/10 border-emerald-400/25 text-emerald-400"}`}>
                             {order.paymentMethod?.toUpperCase()}
                         </span>
-                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full
-                            ${order.paymentStatus === "paid" ? "bg-emerald-400/10 text-emerald-400" : "bg-red-400/10 text-red-400"}`}>
+                        <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full border
+                            ${order.paymentStatus === "paid" ? "bg-emerald-400/10 border-emerald-400/25 text-emerald-400" : "bg-red-400/10 border-red-400/25 text-red-400"}`}>
                             {order.paymentStatus === "paid" ? "Paid" : "Unpaid"}
                         </span>
                     </div>
 
-                    {/* GPS Error */}
                     {gpsError && (
-                        <p className="text-red-400 text-xs bg-red-500/10 px-3 py-2 rounded-xl flex items-center gap-2">
+                        <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/20 px-4 py-2.5 rounded-2xl flex items-center gap-2">
                             <AlertCircle size={12} /> {gpsError}
                         </p>
                     )}
 
-                    {/* Location buttons — ✅ NO disabled check on socketConnected */}
-                    <div className="space-y-2">
+                    {/* GPS Buttons */}
+                    <div className="grid grid-cols-2 gap-3">
                         <button onClick={handleToggleTracking}
-                            className={`w-full py-2.5 font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2
+                            className={`py-3 font-bold rounded-2xl text-sm transition-all flex items-center justify-center gap-2
                                 ${tracking
-                                    ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/30"
-                                    : "border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400"}`}>
+                                    ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25"
+                                    : "border border-blue-500/25 bg-blue-500/8 text-blue-400 hover:bg-blue-500/15"}`}>
                             <Navigation size={13} className={tracking ? "animate-pulse" : ""} />
-                            {tracking ? "🟢 Stop Live Tracking" : "Start Live Tracking"}
+                            {tracking ? "Stop Tracking" : "Live Track"}
                         </button>
-
                         <button onClick={handleSendOnce} disabled={sendingOnce}
-                            className="w-full py-2 border border-accent-10 text-body font-semibold rounded-xl text-xs transition-colors hover:bg-accent-10 disabled:opacity-60 flex items-center justify-center gap-2">
+                            className="py-3 border border-accent-10 text-body font-semibold rounded-2xl text-sm hover:bg-accent-10 disabled:opacity-60 flex items-center justify-center gap-2 transition-all">
                             {sendingOnce ? <Loader2 size={12} className="animate-spin" /> : <Navigation size={12} />}
-                            Send Location Once
+                            Send Once
                         </button>
                     </div>
 
-                    {/* Mark Delivered */}
+                    {/* Deliver */}
                     <button onClick={handleDeliver} disabled={delivering}
-                        className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                        className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-white font-black rounded-2xl text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/20">
                         {delivering
-                            ? <><Loader2 size={14} className="animate-spin" /> Updating...</>
-                            : <><CheckCircle2 size={14} /> Mark as Delivered</>}
+                            ? <><Loader2 size={15} className="animate-spin" /> Updating...</>
+                            : <><CheckCircle2 size={15} /> Mark as Delivered</>}
                     </button>
                 </div>
             )}
@@ -310,17 +278,17 @@ function ActiveOrderCard({ order, onDelivered, socketRef, deliveryBoyId }) {
 function CompletedRow({ order }) {
     const addr = order.shippingAddress;
     return (
-        <div className="bg-card border border-accent-10 rounded-xl px-4 py-3 flex items-center gap-3">
-            <div className="w-9 h-9 bg-emerald-400/10 rounded-xl flex items-center justify-center flex-shrink-0">
+        <div className="bg-card border border-accent-10 rounded-2xl px-5 py-4 flex items-center gap-4 hover:border-emerald-500/20 transition-all">
+            <div className="w-10 h-10 bg-emerald-400/10 border border-emerald-400/20 rounded-xl flex items-center justify-center flex-shrink-0">
                 <CheckCircle2 size={16} className="text-emerald-400" />
             </div>
             <div className="flex-1 min-w-0">
                 <p className="text-heading font-bold text-sm">{order.orderId}</p>
-                <p className="text-body text-xs truncate">{addr?.fullName} · {addr?.district}</p>
+                <p className="text-body text-xs mt-0.5 truncate">{addr?.fullName} · {addr?.district}</p>
             </div>
             <div className="text-right flex-shrink-0">
-                <p className="text-heading font-bold text-sm">৳{Number(order.total).toFixed(0)}</p>
-                <p className="text-body text-xs">{fmtDate(order.updatedAt || order.createdAt)}</p>
+                <p className="text-heading font-bold">৳{Number(order.total).toFixed(0)}</p>
+                <p className="text-body text-xs mt-0.5">{fmtDate(order.updatedAt || order.createdAt)}</p>
             </div>
         </div>
     );
@@ -336,7 +304,6 @@ export default function DeliveryDashboardPage() {
     const [togglingAvail, setTogglingAvail] = useState(false);
     const [socketConnected, setSocketConnected] = useState(false);
     const [toast, setToast] = useState({ msg: "", type: "success" });
-
     const socketRef = useRef(null);
 
     const showToast = useCallback((msg, type = "success") => {
@@ -363,17 +330,9 @@ export default function DeliveryDashboardPage() {
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
 
-    // ── Socket.IO ─────────────────────────────────────────────────────────
     useEffect(() => {
         if (!profile) return;
-
-        // Disconnect previous
-        if (socketRef.current) {
-            socketRef.current.disconnect();
-            socketRef.current = null;
-        }
-
-        console.log("🔌 Connecting socket to:", SOCKET_URL);
+        if (socketRef.current) { socketRef.current.disconnect(); socketRef.current = null; }
 
         const socket = socketIO(SOCKET_URL, {
             withCredentials: true,
@@ -383,54 +342,28 @@ export default function DeliveryDashboardPage() {
             reconnectionDelay: 2000,
             timeout: 10000,
         });
-
         socketRef.current = socket;
-
         const deliveryBoyId = String(profile?.deliveryBoyId || profile?._id || "");
 
-        // ✅ এটা দেখুন — কি আসছে?
-        console.log("🔑 deliveryBoyId for socket:", deliveryBoyId);
-        console.log("🔑 full profile:", profile);
-
         socket.on("connect", () => {
-            console.log("✅ Delivery socket connected:", socket.id);
-            setSocketConnected(true);
-            console.log("📤 Emitting join:delivery with:", deliveryBoyId);
-            socket.emit("join:delivery", deliveryBoyId);
-        });
-
-        socket.on("joined:delivery", (data) => {
-            console.log("✅ joined:delivery confirmed:", data);
-        });
-
-        socket.on("connect_error", (err) => {
-            console.error("❌ Socket connect_error:", err.message, "URL:", SOCKET_URL);
-            setSocketConnected(false);
-        });
-
-        socket.on("disconnect", (reason) => {
-            console.log("🔌 Socket disconnected:", reason);
-            setSocketConnected(false);
-        });
-
-        socket.on("reconnect", (attempt) => {
-            console.log("♻️  Reconnected after", attempt, "attempts");
             setSocketConnected(true);
             socket.emit("join:delivery", deliveryBoyId);
         });
-
+        socket.on("joined:delivery", () => {});
+        socket.on("connect_error", () => setSocketConnected(false));
+        socket.on("disconnect", () => setSocketConnected(false));
+        socket.on("reconnect", () => {
+            setSocketConnected(true);
+            socket.emit("join:delivery", deliveryBoyId);
+        });
         socket.on("delivery:assigned", (data) => {
             showToast(`New order: ${data.orderId} 📦`);
             fetchAll();
         });
 
-        return () => {
-            socket.disconnect();
-            socketRef.current = null;
-        };
+        return () => { socket.disconnect(); socketRef.current = null; };
     }, [profile?.deliveryBoyId, profile?._id]);
 
-    // Auto-refresh every 60s
     useEffect(() => {
         const t = setInterval(fetchAll, 60_000);
         return () => clearInterval(t);
@@ -457,9 +390,7 @@ export default function DeliveryDashboardPage() {
             showToast(newVal ? "Available 🟢" : "Offline 🔴");
         } catch {
             showToast("Failed to update", "error");
-        } finally {
-            setTogglingAvail(false);
-        }
+        } finally { setTogglingAvail(false); }
     };
 
     const handleDelivered = useCallback((orderId) => {
@@ -481,151 +412,189 @@ export default function DeliveryDashboardPage() {
     const completedCount = orders.completed?.length || 0;
 
     return (
-        <div className="min-h-screen bg-bg pb-10">
+        <div className="min-h-screen bg-bg">
 
-            {/* Topbar */}
-            <div className="sticky top-0 z-40 bg-card/80 backdrop-blur border-b border-accent-10">
-                <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] rounded-xl flex items-center justify-center text-white font-black text-base uppercase select-none">
-                            {profile?.name?.[0] || "D"}
+            {/* ── Topbar ── */}
+            <div className="sticky top-0 z-40 bg-card/80 backdrop-blur-xl border-b border-accent-10">
+                <div className="w-full px-6 lg:px-10 py-3.5 flex items-center justify-between gap-4">
+                    {/* Left: avatar + name */}
+                    <div className="flex items-center gap-4">
+                        <div className="relative w-10 h-10 flex-shrink-0">
+                            <div className="w-10 h-10 bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] rounded-2xl flex items-center justify-center text-white font-black text-base uppercase select-none shadow-lg">
+                                {profile?.name?.[0] || "D"}
+                            </div>
+                            <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-card ${profile?.isAvailable ? "bg-emerald-400" : "bg-gray-500"}`} />
                         </div>
                         <div>
                             <p className="text-heading font-black text-sm leading-tight">{profile?.name}</p>
-                            <div className="flex items-center gap-1.5">
-                                <span className={`w-1.5 h-1.5 rounded-full inline-block ${profile?.isAvailable ? "bg-emerald-400" : "bg-gray-400"}`} />
+                            <div className="flex items-center gap-2 mt-0.5">
                                 <p className="text-body text-xs">{profile?.isAvailable ? "Available" : "Offline"}</p>
-                                <span className="ml-1" title={socketConnected ? "Connected" : "Disconnected"}>
+                                <span title={socketConnected ? "Connected" : "Disconnected"}>
                                     {socketConnected
                                         ? <Wifi size={10} className="text-emerald-400" />
-                                        : <WifiOff size={10} className="text-gray-400 animate-pulse" />}
+                                        : <WifiOff size={10} className="text-gray-500 animate-pulse" />}
                                 </span>
                             </div>
                         </div>
                     </div>
+
+                    {/* Right: actions */}
                     <div className="flex items-center gap-2">
                         <button onClick={fetchAll}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent-10 text-body">
-                            <RefreshCw size={14} />
+                            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-accent-10 text-body transition-colors">
+                            <RefreshCw size={15} />
                         </button>
                         <button onClick={handleToggleAvailability} disabled={togglingAvail}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold disabled:opacity-60
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-60 transition-all
                                 ${profile?.isAvailable
-                                    ? "bg-emerald-400/10 text-emerald-400 hover:bg-emerald-400/20"
-                                    : "bg-accent-10 text-body"}`}>
-                            {togglingAvail ? <Loader2 size={12} className="animate-spin" /> : profile?.isAvailable ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+                                    ? "bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/25"
+                                    : "bg-accent-10 border border-accent-10 text-body hover:bg-accent-10/80"}`}>
+                            {togglingAvail
+                                ? <Loader2 size={13} className="animate-spin" />
+                                : profile?.isAvailable ? <ToggleRight size={15} /> : <ToggleLeft size={15} />}
                             {profile?.isAvailable ? "Go Offline" : "Go Online"}
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div className="max-w-2xl mx-auto px-4 py-5 space-y-4">
+            {/* ── Body ── */}
+            <div className="w-full px-6 lg:px-10 py-6 space-y-6">
 
-                {/* Stats */}
-                <div className="grid grid-cols-4 gap-3">
+                {/* ── Stats strip ── */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     {[
-                        { label: "Active", value: pendingCount, cls: "text-yellow-400", bg: "bg-yellow-400/10", icon: Truck },
-                        { label: "Delivered", value: profile?.totalDelivered ?? 0, cls: "text-emerald-400", bg: "bg-emerald-400/10", icon: CheckCircle2 },
-                        { label: "Rating", value: `${(profile?.rating ?? 5).toFixed(1)}★`, cls: "text-yellow-400", bg: "bg-yellow-400/10", icon: Star },
-                        { label: "Zones", value: profile?.zones?.length ?? 0, cls: "text-blue-400", bg: "bg-blue-400/10", icon: MapPin },
-                    ].map(({ label, value, icon: Icon, cls, bg }) => (
-                        <div key={label} className="bg-card border border-accent-10 rounded-2xl p-3 flex flex-col items-center text-center">
-                            <div className={`w-8 h-8 ${bg} rounded-xl flex items-center justify-center mb-2`}>
-                                <Icon size={14} className={cls} />
+                        { label: "Active", value: pendingCount, icon: Truck, color: "text-yellow-400", bg: "bg-yellow-400/10", border: "border-yellow-400/20" },
+                        { label: "Delivered", value: profile?.totalDelivered ?? 0, icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-400/10", border: "border-emerald-400/20" },
+                        { label: "Rating", value: `${(profile?.rating ?? 5).toFixed(1)}★`, icon: Star, color: "text-yellow-400", bg: "bg-yellow-400/10", border: "border-yellow-400/20" },
+                        { label: "Zones", value: profile?.zones?.length ?? 0, icon: MapPin, color: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20" },
+                    ].map(({ label, value, icon: Icon, color, bg, border }) => (
+                        <div key={label}
+                            className={`bg-card border ${border} rounded-3xl p-5 flex items-center gap-4`}
+                            style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.15)" }}>
+                            <div className={`w-12 h-12 ${bg} border ${border} rounded-2xl flex items-center justify-center flex-shrink-0`}>
+                                <Icon size={20} className={color} />
                             </div>
-                            <p className="text-heading font-black text-lg leading-tight">{value}</p>
-                            <p className="text-body text-[10px] mt-0.5">{label}</p>
+                            <div>
+                                <p className="text-heading font-black text-2xl leading-none">{value}</p>
+                                <p className="text-body text-xs mt-1">{label}</p>
+                            </div>
                         </div>
                     ))}
                 </div>
 
-                {/* Assignments */}
-                {assignedOrders.length > 0 && (
-                    <div className="space-y-3">
-                        <p className="text-heading font-black text-sm flex items-center gap-2">
-                            <Clock size={14} className="text-yellow-400" />
-                            Pending Requests ({assignedOrders.length})
-                        </p>
-                        {assignedOrders.map(order => (
-                            <AssignmentCard key={order.orderId} order={order} onRespond={handleRespond} />
-                        ))}
-                    </div>
-                )}
+                {/* ── 2-col layout on wide screens ── */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                {/* Zones */}
-                {profile?.zones?.length > 0 && (
-                    <div className="bg-card border border-accent-10 rounded-2xl px-4 py-3">
-                        <p className="text-body text-[10px] font-semibold uppercase tracking-widest mb-2">Coverage Zones</p>
-                        <div className="flex flex-wrap gap-2">
-                            {profile.zones.map(zone => (
-                                <span key={zone}
-                                    className="px-3 py-1 bg-[var(--color-primary)]/10 text-[var(--color-primary)] text-xs font-bold rounded-full border border-[var(--color-primary)]/20">
-                                    {zone}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-                )}
+                    {/* ── Sidebar (left on desktop) ── */}
+                    <div className="space-y-4 lg:col-span-1">
 
-                {/* Tabs */}
-                <div className="flex gap-1 bg-card border border-accent-10 rounded-xl p-1 w-fit">
-                    {[
-                        { key: "pending", label: "Active Deliveries", count: pendingCount },
-                        { key: "completed", label: "Completed", count: completedCount },
-                    ].map(({ key, label, count }) => (
-                        <button key={key} onClick={() => setTab(key)}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all
-                                ${tab === key ? "bg-[var(--color-primary)] text-white shadow" : "text-body hover:text-heading"}`}>
-                            {label}
-                            <span className={`text-xs px-1.5 py-0.5 rounded-full font-black ${tab === key ? "bg-white/20" : "bg-accent-10"}`}>
-                                {count}
-                            </span>
-                        </button>
-                    ))}
-                </div>
-
-                {/* Active Deliveries */}
-                {tab === "pending" && (
-                    pendingCount === 0 ? (
-                        <div className="text-center py-16 bg-card border border-accent-10 rounded-2xl">
-                            <div className="w-14 h-14 bg-accent-10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                                <Package size={24} className="text-body" />
+                        {/* Zones */}
+                        {profile?.zones?.length > 0 && (
+                            <div className="bg-card border border-accent-10 rounded-3xl px-5 py-4"
+                                style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.12)" }}>
+                                <p className="text-body text-[10px] font-bold uppercase tracking-widest mb-3">Coverage Zones</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {profile.zones.map(zone => (
+                                        <span key={zone}
+                                            className="px-3 py-1.5 bg-[var(--color-primary)]/10 text-[var(--color-primary)] text-xs font-bold rounded-full border border-[var(--color-primary)]/20">
+                                            {zone}
+                                        </span>
+                                    ))}
+                                </div>
                             </div>
-                            <p className="text-heading font-bold text-base mb-1">No active deliveries</p>
-                            <p className="text-body text-sm">Accepted orders will appear here</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {activeOrders.map(order => (
-                                <ActiveOrderCard
-                                    key={order.orderId}
-                                    order={order}
-                                    onDelivered={handleDelivered}
-                                    socketRef={socketRef}
-                                    deliveryBoyId={deliveryBoyId}
-                                />
-                            ))}
-                        </div>
-                    )
-                )}
+                        )}
 
-                {/* Completed */}
-                {tab === "completed" && (
-                    completedCount === 0 ? (
-                        <div className="text-center py-16 bg-card border border-accent-10 rounded-2xl">
-                            <CheckCircle2 size={36} className="text-body mx-auto mb-4" />
-                            <p className="text-heading font-bold text-base mb-1">No completed deliveries yet</p>
-                            <p className="text-body text-sm">Delivered orders will show up here</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-2">
-                            {orders.completed.map(order => (
-                                <CompletedRow key={order.orderId} order={order} />
+                        {/* New requests */}
+                        {assignedOrders.length > 0 && (
+                            <div className="space-y-3">
+                                <p className="text-heading font-black text-sm flex items-center gap-2 px-1">
+                                    <Clock size={14} className="text-yellow-400" />
+                                    Pending Requests
+                                    <span className="ml-auto bg-yellow-400/15 border border-yellow-400/25 text-yellow-400 text-[10px] font-black px-2 py-0.5 rounded-full">
+                                        {assignedOrders.length}
+                                    </span>
+                                </p>
+                                {assignedOrders.map(order => (
+                                    <AssignmentCard key={order.orderId} order={order} onRespond={handleRespond} />
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Empty sidebar state */}
+                        {assignedOrders.length === 0 && (!profile?.zones || profile.zones.length === 0) && (
+                            <div className="bg-card border border-accent-10 rounded-3xl p-6 text-center">
+                                <Zap size={28} className="text-body mx-auto mb-3 opacity-40" />
+                                <p className="text-body text-sm">Waiting for new requests...</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* ── Main content (right) ── */}
+                    <div className="lg:col-span-2 space-y-4">
+
+                        {/* Tabs */}
+                        <div className="flex gap-1 bg-card border border-accent-10 rounded-2xl p-1.5 w-fit">
+                            {[
+                                { key: "pending", label: "Active Deliveries", count: pendingCount },
+                                { key: "completed", label: "Completed", count: completedCount },
+                            ].map(({ key, label, count }) => (
+                                <button key={key} onClick={() => setTab(key)}
+                                    className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-bold transition-all
+                                        ${tab === key
+                                            ? "bg-[var(--color-primary)] text-white shadow-lg shadow-[var(--color-primary)]/25"
+                                            : "text-body hover:text-heading"}`}>
+                                    {label}
+                                    <span className={`text-xs px-2 py-0.5 rounded-full font-black ${tab === key ? "bg-white/20 text-white" : "bg-accent-10 text-body"}`}>
+                                        {count}
+                                    </span>
+                                </button>
                             ))}
                         </div>
-                    )
-                )}
+
+                        {/* Active tab */}
+                        {tab === "pending" && (
+                            pendingCount === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-24 bg-card border border-accent-10 rounded-3xl text-center">
+                                    <div className="w-16 h-16 bg-accent-10 rounded-3xl flex items-center justify-center mb-5">
+                                        <Package size={26} className="text-body opacity-50" />
+                                    </div>
+                                    <p className="text-heading font-bold text-base mb-1.5">No active deliveries</p>
+                                    <p className="text-body text-sm">Accepted orders will appear here</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {activeOrders.map(order => (
+                                        <ActiveOrderCard
+                                            key={order.orderId}
+                                            order={order}
+                                            onDelivered={handleDelivered}
+                                            socketRef={socketRef}
+                                            deliveryBoyId={deliveryBoyId}
+                                        />
+                                    ))}
+                                </div>
+                            )
+                        )}
+
+                        {/* Completed tab */}
+                        {tab === "completed" && (
+                            completedCount === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-24 bg-card border border-accent-10 rounded-3xl text-center">
+                                    <TrendingUp size={32} className="text-body mb-5 opacity-40" />
+                                    <p className="text-heading font-bold text-base mb-1.5">No completed deliveries yet</p>
+                                    <p className="text-body text-sm">Delivered orders will show up here</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2.5">
+                                    {orders.completed.map(order => (
+                                        <CompletedRow key={order.orderId} order={order} />
+                                    ))}
+                                </div>
+                            )
+                        )}
+                    </div>
+                </div>
             </div>
 
             <Toast msg={toast.msg} type={toast.type} />
