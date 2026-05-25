@@ -14,6 +14,7 @@ import AddToCartButton from "../../components/AddToCartButton";
 import WishlistButton from "../../components/Wishlistbutton";
 import c, { useCart } from "@/app/context/Cartcontext";
 import { useAuth } from "@/app/context/AuthContext";
+import ProductReviews from "../components/Productreviews";
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 function Skeleton({ className = "" }) {
@@ -374,7 +375,7 @@ function ReviewCard({ review }) {
 export default function ProductPage() {
     const { slug } = useParams();
     const router = useRouter();
-    const {  isAuth } = useAuth();
+    const { isAuth } = useAuth();
 
     const [product, setProduct] = useState(null);
     const [promotions, setPromotions] = useState([]);
@@ -651,7 +652,7 @@ export default function ProductPage() {
                                         params.set("variantId", selectedVariant._id);
                                     }
 
-                                  
+
                                     if (isAuth) {
                                         router.push(`/checkout?${params.toString()}`);
                                     } else {
@@ -773,7 +774,13 @@ export default function ProductPage() {
                         </div>
                     )}
                 </div>
+
             </div>
+            <ProductReviews
+                productId={product._id}
+                averageRating={product.averageRating}
+                totalReviews={product.totalReviews}
+            />
         </div>
     );
 }

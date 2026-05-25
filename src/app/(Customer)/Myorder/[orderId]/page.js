@@ -10,6 +10,7 @@ import {
     Navigation, Wifi, WifiOff,
 } from "lucide-react";
 import api from "@/app/lib/api";
+import OrderReviewSection from "../components/Orderreviewsection";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
@@ -797,6 +798,8 @@ export default function OrderDetailPage() {
                         <Timeline entries={[...order.timeline].reverse()} />
                     </div>
                 )}
+
+                <OrderReviewSection order={order} />
 
                 {canCancel && (
                     <div className="flex justify-end">
