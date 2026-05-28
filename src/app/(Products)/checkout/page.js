@@ -404,6 +404,7 @@ export default function CheckoutPage() {
     const [selectedAddress, setSelectedAddress] = useState(null);
     const [paymentMethod, setPaymentMethod] = useState("cod");
     const [placing, setPlacing] = useState(false);
+const [bnPromoResult, setBnPromoResult] = useState(null);
 
     // ── Fetch product for Buy Now ──────────────────────────────────────────
     useEffect(() => {
@@ -426,39 +427,89 @@ export default function CheckoutPage() {
             .catch(console.error);
     }, [selectedAddrId]);
 
+
+    // ── Fetch product for Buy Now ──────────────────────────────────────────
+
+useEffect(() => {
+    if (!isBuyNow || !productId) return;
+    setBnLoading(true);
+    api.get(`/api/products/${productId}`)
+        .then(async ({ data }) => {
+            const product = data.data;
+            setBnProduct(product);
+            // Promotion preview
+            try {
+                const promoRes = await api.post("/api/orders/buy-now/preview", {
+                    productId,
+                    variantId: variantId || undefined,
+                    quantity: qty,
+                });
+                setBnPromoResult(promoRes.data.data); // { subtotal, discount, shippingFee, total, finalPrice }
+            } catch {
+                setBnPromoResult(null); // fallback to product price
+            }
+        })
+        .catch(() => setError("Product not found."))
+        .finally(() => setBnLoading(false));
+}, [isBuyNow, productId]);
+
     // ── Sidebar data ───────────────────────────────────────────────────────
     const sidebarData = (() => {
-        if (isBuyNow && bnProduct) {
-            const variant = bnProduct.variants?.find(v => v._id === variantId);
-            const price = variant?.price ?? bnProduct.discountedPrice ?? bnProduct.basePrice ?? 0;
-            const subtotal = price * qty;
-            const shippingFee = getShippingFee(subtotal);
-            return {
-                items: [{ nameSnapshot: bnProduct.name, imageSnapshot: bnProduct.images?.[0] || "", finalPrice: price, quantity: qty }],
-                subtotal,
-                discount: 0,
-                shippingFee,
-                total: subtotal + shippingFee,
-                coupon: null,
-            };
-        }
-
-        // Cart mode — use summary from context
-        const subtotal = summary?.subtotal || 0;
-        const discount = summary?.discount || 0;
-        const afterDiscount = Math.max(0, subtotal - discount);
-        const couponDiscount = cart?.appliedCoupon?.discountAmount || 0;
-        const shippingFee = afterDiscount > 0 ? getShippingFee(afterDiscount) : 0;
-        const total = Math.max(0, afterDiscount - couponDiscount + shippingFee);
-
+      if (isBuyNow && bnProduct) {
+    if (bnPromoResult) {
+        // ✅ promotion engine-এর exact values
         return {
-            items: summary?.selectedItems || [],
-            subtotal,
-            discount,
-            shippingFee,
-            total,
-            coupon: cart?.appliedCoupon || null,
+            items: [{
+                nameSnapshot: bnProduct.name,
+                imageSnapshot: bnProduct.images?.[0] || "",
+                priceAtAdd: bnPromoResult.subtotal / qty,
+                finalPrice: bnPromoResult.finalPrice,
+                quantity: qty,
+            }],
+            subtotal: bnPromoResult.subtotal,
+            discount: bnPromoResult.discount,
+            shippingFee: bnPromoResult.shippingFee,
+            total: bnPromoResult.total,
+            coupon: null,
         };
+    }
+    // Fallback — discountedPrice দিয়ে
+    const originalPrice = bnProduct.basePrice ?? 0;
+    const finalPrice = bnProduct.discountedPrice ?? bnProduct.basePrice ?? 0;
+    const subtotal = originalPrice * qty;
+    const discountedSubtotal = finalPrice * qty;
+    const discount = Math.max(0, subtotal - discountedSubtotal);
+    const shippingFee = getShippingFee(discountedSubtotal);
+    return {
+        items: [{ nameSnapshot: bnProduct.name, imageSnapshot: bnProduct.images?.[0] || "", priceAtAdd: originalPrice, finalPrice, quantity: qty }],
+        subtotal, discount, shippingFee,
+        total: discountedSubtotal + shippingFee,
+        coupon: null,
+    };
+}
+
+ // Cart mode
+const subtotal = summary?.subtotal ?? 0;
+const discount = summary?.discount ?? 0;
+const shippingFee = summary?.shippingFee ?? 80;
+const total = summary?.total ?? 0;
+
+const normalizedItems = (summary?.selectedItems || cart?.items || []).map(item => ({
+    ...item,
+    finalPrice: item.finalPrice ?? item.priceAtAdd ?? 0,
+    nameSnapshot: item.nameSnapshot || item.name || "Product",
+    imageSnapshot: item.imageSnapshot || item.image || "",
+}));
+
+return {
+    items: normalizedItems,
+    subtotal,
+    discount,
+    shippingFee,
+    total,
+    coupon: cart?.appliedCoupon || null,
+};
+
     })();
 
     // ── Place order ────────────────────────────────────────────────────────
