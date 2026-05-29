@@ -63,7 +63,10 @@ const LoginPage = () => {
       const loggedInUser = await fetchUser();
       toast.success(response.data.message || 'Login successful!');
 
-      const returnUrl = searchParams.get('returnUrl') || searchParams.get('from');
+const returnUrl =
+  searchParams.get('redirect') ||   // ✅ add this
+  searchParams.get('returnUrl') ||
+        searchParams.get('from');
       if (returnUrl) {
         router.push(decodeURIComponent(returnUrl));
         return;
