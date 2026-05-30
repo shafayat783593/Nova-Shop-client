@@ -60,6 +60,8 @@ function Stars({ rating = 0 }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // PRODUCT CARD
 // ─────────────────────────────────────────────────────────────────────────────
+// ─── ProductCard (Grid view only — key changes) ────────────────────────────
+
 function ProductCard({ product, view = "grid" }) {
     const router = useRouter();
 
@@ -85,14 +87,14 @@ function ProductCard({ product, view = "grid" }) {
                         </div>
                     )}
                     {discPct && (
-                        <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded-lg bg-green-500 text-white text-xs font-bold">
+                        <span className="absolute top-2 left-2 px-2 py-0.5 rounded-lg bg-green-500 text-white text-xs font-bold tracking-wide">
                             -{discPct}%
                         </span>
                     )}
                 </div>
                 <div className="flex-1 p-5 flex flex-col justify-between min-w-0">
                     <div className="space-y-2">
-                        <span className="text-xs text-[var(--color-primary)] font-semibold capitalize bg-[var(--color-primary)]/10 px-2 py-0.5 rounded-full">
+                        <span className="inline-block text-[10px] text-[var(--color-primary)] font-bold uppercase tracking-widest bg-[var(--color-primary)]/10 px-2.5 py-1 rounded-full">
                             {product.category}
                         </span>
                         <h3 className="text-heading font-bold text-base leading-snug line-clamp-2 group-hover:text-[var(--color-primary)] transition-colors">
@@ -107,21 +109,11 @@ function ProductCard({ product, view = "grid" }) {
                     <div className="flex items-center justify-between mt-3 flex-wrap gap-3">
                         <div className="flex items-end gap-2">
                             <span className="text-heading text-xl font-black">৳{price?.toLocaleString()}</span>
-                            {hasDiscount && <span className="text-body text-sm line-through">৳{product.basePrice?.toLocaleString()}</span>}
+                            {hasDiscount && <span className="text-body text-xs line-through">৳{product.basePrice?.toLocaleString()}</span>}
                         </div>
                         <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                            {/* ← stopPropagation wrapper — card click block করে */}
-                            <WishlistButton
-                                productId={product._id}
-                                product={product}
-                                size="icon"
-                            />
-                            <AddToCartButton
-                                productId={product._id}
-                                product={product}
-                                inStock={product.isActive}
-                                size="sm"
-                            />
+                            <WishlistButton productId={product._id} product={product} size="icon" />
+                            <AddToCartButton productId={product._id} product={product} inStock={product.isActive} size="sm" />
                         </div>
                     </div>
                 </div>
@@ -133,13 +125,16 @@ function ProductCard({ product, view = "grid" }) {
     return (
         <div
             onClick={() => router.push(`/products/${product.slug}`)}
-            className="group bg-card rounded-2xl border border-accent-10 overflow-hidden cursor-pointer hover:border-[var(--color-primary)]/40 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col"
+            className="group bg-card rounded-[20px] border border-accent-10 overflow-hidden cursor-pointer
+                       hover:border-[var(--color-primary)]/30
+                       hover:shadow-[0_20px_40px_rgba(127,119,221,0.13)]
+                       hover:-translate-y-1 transition-all duration-300 flex flex-col"
         >
             {/* Image */}
             <div className="relative aspect-[4/3] overflow-hidden bg-bg">
                 {product.images?.[0] ? (
                     <img src={product.images[0]} alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        className="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-500" />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center">
                         <Package size={36} className="text-body opacity-20" />
@@ -147,64 +142,74 @@ function ProductCard({ product, view = "grid" }) {
                 )}
 
                 {/* Badges */}
-                <div className="absolute top-2 left-2 flex flex-col gap-1.5">
+                <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5">
                     {discPct && (
-                        <span className="px-2 py-0.5 rounded-lg bg-green-500 text-white text-xs font-bold shadow">
+                        <span className="px-2 py-0.5 rounded-lg bg-green-500 text-white text-[11px] font-bold tracking-wide shadow-sm">
                             -{discPct}%
                         </span>
                     )}
                     {product.isFeatured && (
-                        <span className="px-2 py-0.5 rounded-lg bg-amber-400 text-white text-xs font-bold shadow">
+                        <span className="px-2 py-0.5 rounded-lg bg-amber-400 text-white text-[11px] font-bold shadow-sm">
                             ⭐ Featured
                         </span>
                     )}
                 </div>
 
-                {/* Wishlist — top right, stops card click */}
+                {/* Wishlist — circular glass button */}
                 <div
-                    className="absolute top-2 right-2"
+                    className="absolute top-2.5 right-2.5"
                     onClick={e => e.stopPropagation()}
                 >
-                    <WishlistButton
-                        productId={product._id}
-                        product={product}   // ← guest cart এর জন্য দরকার
-                        size="icon"
-                    />
+                    <div className="w-8 h-8 rounded-full bg-white/85 backdrop-blur-sm flex items-center justify-center shadow-sm hover:bg-white hover:scale-110 transition-all duration-200">
+                        <WishlistButton productId={product._id} product={product} size="icon" />
+                    </div>
                 </div>
 
-                {/* Add to Cart — bottom, shows on hover */}
+                {/* Add to Cart — gradient overlay, slides up on hover */}
                 <div
-                    className="absolute bottom-0 left-0 right-0 p-2
+                    className="absolute bottom-0 left-0 right-0 p-2.5
+                                bg-gradient-to-t from-black/20 to-transparent
                                 translate-y-full group-hover:translate-y-0
-                                transition-transform duration-300"
+                                transition-transform duration-300 ease-out"
                     onClick={e => e.stopPropagation()}
                 >
                     <AddToCartButton
                         productId={product._id}
-                        product={product}   // ← guest cart এর জন্য দরকার
+                        product={product}
                         inStock={product.isActive}
                         size="default"
-                        className="w-full justify-center"
+                        className="w-full justify-center text-[12px] font-bold tracking-wide py-2.5 rounded-xl"
                     />
                 </div>
             </div>
 
             {/* Info */}
-            <div className="p-4 flex flex-col flex-1">
-                <span className="text-xs text-[var(--color-primary)] font-semibold capitalize">
+            <div className="p-4 flex flex-col flex-1 gap-1.5">
+                {/* Category pill */}
+                <span className="inline-block self-start text-[10px] text-[var(--color-primary)] font-bold uppercase tracking-widest bg-[var(--color-primary)]/10 px-2.5 py-1 rounded-full">
                     {product.category}
                 </span>
-                <h3 className="text-heading font-bold text-sm leading-snug mt-1 line-clamp-2 flex-1 group-hover:text-[var(--color-primary)] transition-colors">
+
+                {/* Name */}
+                <h3 className="text-heading font-bold text-sm leading-snug line-clamp-2 flex-1 group-hover:text-[var(--color-primary)] transition-colors duration-200">
                     {product.name}
                 </h3>
-                <div className="flex items-center gap-1.5 mt-1.5">
+
+                {/* Stars */}
+                <div className="flex items-center gap-1.5">
                     <Stars rating={product.averageRating} />
-                    <span className="text-body text-xs">({product.totalReviews || 0})</span>
+                    <span className="text-body text-[11px]">({product.totalReviews || 0})</span>
                 </div>
-                <div className="flex items-end gap-2 mt-2">
-                    <span className="text-heading font-black text-base">৳{price?.toLocaleString()}</span>
+
+                {/* Price */}
+                <div className="flex items-baseline gap-2 mt-0.5">
+                    <span className="text-heading font-black text-base tracking-tight">
+                        ৳{price?.toLocaleString()}
+                    </span>
                     {hasDiscount && (
-                        <span className="text-body text-xs line-through">৳{product.basePrice?.toLocaleString()}</span>
+                        <span className="text-body text-[11px] line-through">
+                            ৳{product.basePrice?.toLocaleString()}
+                        </span>
                     )}
                 </div>
             </div>

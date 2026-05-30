@@ -267,8 +267,8 @@ export default function SettingsPage() {
         fetchSessions,
         revokeSession,
         logOutAllDevices,
+        loading
     } = useAuth();
-
     // sessions fetch করো mount এ
     useEffect(() => {
         fetchSessions();
@@ -284,7 +284,6 @@ export default function SettingsPage() {
 
     const [twoFa, setTwoFa] = useState(authUser?.twoFactorEnabled || false);
     const [twoFaLoading, setTwoFaLoading] = useState(false);
-
     const [notifs, setNotifs] = useState({
         emailNotifications: true,
         smsNotifications: false,
@@ -301,10 +300,11 @@ export default function SettingsPage() {
     const [deleteLoading, setDeleteLoading] = useState(false);
     const router = useRouter();
 
-    useEffect(() => {
-        if (!authUser) {
-            router.push(`/login?redirect=/setting`);        }
-    }, [authUser, router]);
+   useEffect(() => {
+    if (!loading && !authUser) {
+        router.push(`/login?redirect=/setting`);
+    }
+}, [authUser, loading, router]);
 
 
     const [toast, setToast] = useState(null);

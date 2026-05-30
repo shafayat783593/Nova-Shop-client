@@ -59,17 +59,25 @@ function CategoryCard({ cat, index }) {
             onClick={() => router.push(`/products?category=${encodeURIComponent(cat.name)}`)}
             className="flex flex-col items-center gap-2.5 flex-shrink-0 group focus:outline-none"
             style={{
-                width: 120,
+                width: 110,
                 animation: "catFadeUp 0.4s ease both",
                 animationDelay: `${Math.min(index * 50, 400)}ms`,
             }}
         >
             {/* Image box */}
             <div
-                className="relative rounded-2xl overflow-hidden border border-accent-10 transition-all duration-300 group-hover:-translate-y-1.5 group-hover:shadow-lg group-hover:border-[var(--color-primary)]/25"
-                style={{ width: 120, height: 120, background: "var(--card-bg)" }}
+                className="relative overflow-hidden transition-all duration-300 ease-[cubic-bezier(.34,1.56,.64,1)]
+                           group-hover:-translate-y-1.5
+                           group-hover:shadow-[0_16px_36px_rgba(127,119,221,0.18)]
+                           group-hover:border-[var(--color-primary)]/35"
+                style={{
+                    width: 110, height: 110,
+                    borderRadius: 24,
+                    background: "var(--accent-opacity)",
+                    border: "1.5px solid rgba(127,119,221,0.12)",
+                }}
             >
-                {/* Actual image */}
+                {/* Image */}
                 {hasImg && (
                     <img
                         src={cat.image}
@@ -77,15 +85,12 @@ function CategoryCard({ cat, index }) {
                         loading="lazy"
                         onLoad={() => setImgLoaded(true)}
                         onError={() => setImgError(true)}
-                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-108"
-                        style={{
-                            opacity: imgLoaded ? 1 : 0,
-                            transition: "opacity 0.3s ease, transform 0.5s ease",
-                        }}
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.08] transition-transform duration-500"
+                        style={{ opacity: imgLoaded ? 1 : 0, transition: "opacity 0.3s ease, transform 0.5s ease" }}
                     />
                 )}
 
-                {/* Shimmer while loading */}
+                {/* Shimmer */}
                 {hasImg && !imgLoaded && (
                     <div className="absolute inset-0 bg-[var(--accent-opacity)]">
                         <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]"
@@ -100,28 +105,36 @@ function CategoryCard({ cat, index }) {
                     </div>
                 )}
 
-                {/* Bottom gradient overlay on hover */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                    style={{ background: "linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 55%)" }} />
+                {/* Dark gradient overlay — fades in on hover */}
+                <div
+                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                    style={{ background: "linear-gradient(to top, rgba(60,52,137,0.55) 0%, transparent 55%)" }}
+                />
 
-                {/* Product count — appears on hover */}
+                {/* Item count pill — slides up on hover */}
                 {cat.productCount > 0 && (
-                    <div className="absolute bottom-0 left-0 right-0 flex justify-center pb-2 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300 pointer-events-none">
-                        <span className="text-white text-[9px] font-bold tracking-wide">
+                    <div className="absolute bottom-0 left-0 right-0 flex justify-center pb-2
+                                    opacity-0 group-hover:opacity-100
+                                    translate-y-1 group-hover:translate-y-0
+                                    transition-all duration-300 pointer-events-none">
+                        <span className="text-white text-[9px] font-bold tracking-widest uppercase
+                                         bg-white/15 backdrop-blur-sm
+                                         px-2.5 py-0.5 rounded-full
+                                         border border-white/20">
                             {cat.productCount} items
                         </span>
                     </div>
                 )}
             </div>
 
-            {/* Name */}
+            {/* Label */}
             <div className="text-center px-1 w-full">
-                <p className="text-heading text-xs font-bold leading-tight line-clamp-2 group-hover:text-[var(--color-primary)] transition-colors duration-200"
-                   >
+                <p className="text-heading text-[12px] font-bold leading-tight line-clamp-2
+                               group-hover:text-[var(--color-primary)] transition-colors duration-200">
                     {cat.name}
                 </p>
                 {cat.productCount > 0 && (
-                    <p className="text-body text-[10px] mt-0.5 font-medium opacity-70">
+                    <p className="text-body text-[10px] mt-0.5 font-medium opacity-60">
                         {cat.productCount > 999
                             ? `${(cat.productCount / 1000).toFixed(1)}k`
                             : cat.productCount}+ products
@@ -131,7 +144,6 @@ function CategoryCard({ cat, index }) {
         </button>
     );
 }
-
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function FeaturedCategories() {
     const router = useRouter();
