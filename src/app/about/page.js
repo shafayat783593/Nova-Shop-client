@@ -183,7 +183,7 @@ export default function AboutPage() {
                             className="text-body text-base md:text-lg leading-relaxed mb-8 max-w-lg"
                             style={{ animation: "fadeUp .6s ease .1s both" }}
                         >
-                            We started in <strong className="text-heading font-bold">2023</strong> with one mission —
+                            We started in <strong className="text-heading font-bold">2026</strong> with one mission —
                             to give Bangladeshi shoppers a place they can genuinely trust.
                             Affordable prices, authentic products, delivered fast. That's NovaShop.
                         </p>
@@ -194,9 +194,9 @@ export default function AboutPage() {
                             style={{ animation: "fadeUp .6s ease .15s both" }}
                         >
                             {[
-                                { Icon: CalendarDays, text: "Founded in 2023, Dhaka, Bangladesh" },
+                                { Icon: CalendarDays, text: "Founded in 2026, Dhaka, Bangladesh" },
                                 { Icon: ShoppingBag,  text: "3,500+ products across 20+ categories" },
-                                { Icon: Users,        text: "12,000+ happy customers and growing" },
+                                { Icon: Users,        text: "4,000+ happy customers and growing" },
                             ].map(({ Icon, text }) => (
                                 <div key={text} className="flex items-center gap-3">
                                     <div

@@ -38,7 +38,7 @@ const ACCOUNT_LINKS = [
   { icon: User, label: "My Profile", href: "/account/profile", badge: null },
   { icon: Package, label: "My Orders", href: "/Myorder", badge: "orders" },
   { icon: Heart, label: "Wishlist", href: "/wishlist", badge: "wishlist" },
-  { icon: MapPin, label: "Addresses", href: "/account/address", badge: null },
+  { icon: MapPin, label: "Addresses", href: "/address", badge: null },
   { icon: CreditCard, label: "Payment Methods", href: "/account/payment", badge: null },
   // { icon: Settings, label: "Settings", href: "/account/settings", badge: null },
 ];
