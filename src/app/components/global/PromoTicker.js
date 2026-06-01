@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/app/lib/api";
 
@@ -21,22 +21,13 @@ export function PromoTicker() {
                         text: p.description || p.name,
                     }));
                 if (texts.length === 0) {
-                    setItems([
-                        { label: "SALE", text: "Free shipping on orders ৳500+" },
-                        { label: "OFFER", text: "Exclusive deals every week" },
-                    ]);
+                    setItems([]);
                 } else {
-                    // duplicate for seamless loop
                     setItems([...texts, ...texts]);
                 }
             })
             .catch(() => {
-                setItems([
-                    { label: "SALE", text: "Free shipping on orders ৳500+" },
-                    { label: "OFFER", text: "Exclusive deals every week" },
-                    { label: "SALE", text: "Free shipping on orders ৳500+" },
-                    { label: "OFFER", text: "Exclusive deals every week" },
-                ]);
+                setItems([]);
             });
     }, []);
 
@@ -45,8 +36,7 @@ export function PromoTicker() {
     return (
         <div
             onClick={() => router.push("/deals")}
-            className="w-full overflow-hidden cursor-pointer"
-            style={{ background: "var(--primary)" }}
+            className="w-full overflow-hidden cursor-pointer h-8 flex items-center nb-font bg-primary"
         >
             <div className="nb-ticker-wrapper">
                 {items.map((item, i) => (
@@ -96,8 +86,8 @@ export function PromoTicker() {
           flex-shrink: 0;
         }
         @keyframes nb-ticker-move {
-          0%   { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
+          0%   { transform: translateX(-50%); }
+          100% { transform: translateX(0); }
         }
       `}</style>
         </div>
