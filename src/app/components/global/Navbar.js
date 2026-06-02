@@ -20,15 +20,15 @@ import { useWishlist } from "@/app/context/Wishlistcontext";
 // Static Config
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const NAV_LINKS = [
-  {
-    label: "Shop", href: "/shop",
-    sub: [
-      { icon: "🌿", name: "Organic", href: "/shop/organic", desc: "Natural products" },
-      { icon: "🌸", name: "Skincare", href: "/shop/skincare", desc: "Pure & gentle" },
-      { icon: "🍃", name: "Wellness", href: "/shop/wellness", desc: "Mind & body" },
-      { icon: "🪴", name: "Home & Garden", href: "/shop/home", desc: "Living spaces" },
-    ],
-  },
+  // {
+  //   label: "Shop", href: "/shop",
+  //   sub: [
+  //     { icon: "🌿", name: "Organic", href: "/shop/organic", desc: "Natural products" },
+  //     { icon: "🌸", name: "Skincare", href: "/shop/skincare", desc: "Pure & gentle" },
+  //     { icon: "🍃", name: "Wellness", href: "/shop/wellness", desc: "Mind & body" },
+  //     { icon: "🪴", name: "Home & Garden", href: "/shop/home", desc: "Living spaces" },
+  //   ],
+  // },
   { label: "Products", href: "/products" },
   { label: "Deals", href: "/deals" },
   { label: "About", href: "/about" },
