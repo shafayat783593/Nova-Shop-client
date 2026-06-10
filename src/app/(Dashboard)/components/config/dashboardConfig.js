@@ -13,7 +13,8 @@ import {
   Image,
   Tag,
   Truck,
-  ClipboardList
+  ClipboardList,
+  MessageCircle
 } from "lucide-react";
 
 export const DASHBOARD_MENU = {
@@ -31,6 +32,7 @@ export const DASHBOARD_MENU = {
     // Delivery & Orders
     { name: "Manage DeliveryBoy", path: "/admin/DeliveryBoy", icon: Truck },
     { name: "Manage Orders", path: "/admin/Orders", icon: ClipboardList },
+    {name:"manage chat", path: "/admin/admin-chat", icon: MessageCircle },
   ],
 
   customer: [

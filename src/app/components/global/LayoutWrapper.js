@@ -3,6 +3,7 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion'; 
 import Navbar from './Navbar';
 import Footer from './Footer';
+import ChatWidget from '@/app/chat/Chatwidget';
 
 
 export default function LayoutWrapper({ children }) {
@@ -30,6 +31,8 @@ export default function LayoutWrapper({ children }) {
                     transition={{ duration: 0.3 }}
                 >
                     {children}
+                          {user?.role === "customer" && <ChatWidget />}
+
                 </motion.main>
             </AnimatePresence>
 
