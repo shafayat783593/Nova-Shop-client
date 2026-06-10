@@ -66,3 +66,68 @@ body {
     color: var(--text-main);
     transition: background-color 0.4s ease, color 0.4s ease;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Animation Classes */
+.animate-slide-up {
+    animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-ping-slow {
+    animation: pingSlow 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.animate-bounce {
+    animation: bounce 1s ease-in-out infinite;
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.2s ease-out;
+}
+
+/* Smooth Transitions */
+* {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--accent-opacity);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-accent);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-secondary);
+}
+
+body {
+    background-color: var(--bg);
+    color: var(--text-main);
+    transition: background-color 0.4s ease, color 0.4s ease;
+}
