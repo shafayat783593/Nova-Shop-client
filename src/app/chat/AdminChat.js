@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { Send, Loader2 } from "lucide-react";
-import { useChat } from "@/hooks/useChat";
+import { useChat } from "../context/usechat";
 
 export default function AdminChat() {
   const [inputText, setInputText] = useState("");

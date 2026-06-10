@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { Send, Loader2, Sparkles } from "lucide-react";
-import api from "@/lib/api";
+import api from "../lib/api";
 
 // Initial greeting message
 const INITIAL_MESSAGE = {
@@ -36,7 +36,7 @@ export default function AiChat() {
     setIsLoading(true);
 
     try {
-      const { data } = await api.post("/chat/ai", { message: userMessage });
+      const { data } = await api.post("/api/chat/ai", { message: userMessage });
 
       // AI এর reply যোগ করো
       setMessages((prev) => [

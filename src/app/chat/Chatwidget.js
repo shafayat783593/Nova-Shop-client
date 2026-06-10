@@ -5,65 +5,129 @@ import { useAuth } from "@/app/context/AuthContext";
 import AdminChat from "./AdminChat";
 import AiChat from "./AiChat";
 
-// Tab গুলো define করা
 const TABS = [
   { id: "admin", label: "Admin Chat", icon: Headphones },
   { id: "ai", label: "AI Chat", icon: Bot },
 ];
 
 export default function ChatWidget() {
-  const { user } = useAuth(); // AuthContext থেকে user নাও
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("admin");
 
-  // Login না থাকলে widget দেখাবে না
   if (!user) return null;
 
   return (
-    <>
-      {/* ── Chat Modal ──────────────────────────── */}
+    // পুরো widget টা একটা portal-like div এ রাখো
+    <div style={{ position: "fixed", bottom: 0, right: 0, zIndex: 9999 }}>
+
+      {/* ── Chat Modal ── */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 w-80 h-[520px] bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-200">
+        <div
+          style={{
+            position: "absolute",
+            bottom: "80px",
+            right: "24px",
+            width: "320px",
+            height: "520px",
+            backgroundColor: "#111827", // gray-900
+            border: "1px solid #374151", // gray-700
+            borderRadius: "16px",
+            boxShadow: "0 25px 50px rgba(0,0,0,0.8)",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            zIndex: 9999,
+          }}
+        >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-gray-800 border-b border-gray-700">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
-                <MessageCircle className="w-4 h-4 text-white" />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "12px 16px",
+              backgroundColor: "#1f2937", // gray-800
+              borderBottom: "1px solid #374151",
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "50%",
+                  backgroundColor: "#2563eb",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <MessageCircle size={16} color="white" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-white">
+                <p style={{ color: "white", fontSize: "14px", fontWeight: 600, margin: 0 }}>
                   Live Support
-                </h3>
-                <p className="text-xs text-gray-400">We're here to help!</p>
+                </p>
+                <p style={{ color: "#9ca3af", fontSize: "12px", margin: 0 }}>
+                  We're here to help!
+                </p>
               </div>
             </div>
 
-            {/* Close Button */}
             <button
               onClick={() => setIsOpen(false)}
-              className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-700 transition-colors"
+              style={{
+                width: "28px",
+                height: "28px",
+                borderRadius: "8px",
+                border: "none",
+                backgroundColor: "transparent",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
-              <X className="w-4 h-4 text-gray-400" />
+              <X size={16} color="#9ca3af" />
             </button>
           </div>
 
           {/* Tab Switcher */}
-          <div className="flex bg-gray-800 px-2 pt-2 gap-1">
+          <div
+            style={{
+              display: "flex",
+              backgroundColor: "#1f2937",
+              padding: "8px 8px 0",
+              gap: "4px",
+              flexShrink: 0,
+            }}
+          >
             {TABS.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
-
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-t-lg text-xs font-medium transition-colors ${
-                    isActive
-                      ? "bg-gray-900 text-white"
-                      : "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
-                  }`}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    padding: "8px 12px",
+                    borderRadius: "8px 8px 0 0",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "12px",
+                    fontWeight: 500,
+                    backgroundColor: isActive ? "#111827" : "transparent",
+                    color: isActive ? "white" : "#9ca3af",
+                  }}
                 >
-                  <Icon className="w-3.5 h-3.5" />
+                  <Icon size={14} />
                   {tab.label}
                 </button>
               );
@@ -71,24 +135,38 @@ export default function ChatWidget() {
           </div>
 
           {/* Tab Content */}
-          <div className="flex-1 overflow-hidden">
-            {/* AdminChat ও AiChat এর ভেতরে নিজেরাই useAuth/useChat ব্যবহার করে */}
+          <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
             {activeTab === "admin" ? <AdminChat /> : <AiChat />}
           </div>
         </div>
       )}
 
-      {/* ── Floating Button ──────────────────────── */}
+      {/* ── Floating Button ── */}
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-blue-600 hover:bg-blue-500 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95"
+        style={{
+          position: "absolute",
+          bottom: "24px",
+          right: "24px",
+          width: "56px",
+          height: "56px",
+          borderRadius: "50%",
+          backgroundColor: "#2563eb",
+          border: "none",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "0 10px 25px rgba(37,99,235,0.5)",
+          zIndex: 9999,
+        }}
       >
         {isOpen ? (
-          <X className="w-6 h-6 text-white" />
+          <X size={24} color="white" />
         ) : (
-          <MessageCircle className="w-6 h-6 text-white" />
+          <MessageCircle size={24} color="white" />
         )}
       </button>
-    </>
+    </div>
   );
 }

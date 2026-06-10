@@ -4,9 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import { Send, MessageCircle, User, Circle } from "lucide-react";
 import { io } from "socket.io-client";
 import { useAuth } from "@/app/context/AuthContext";
-import api from "@/lib/api";
+import api from "@/app/lib/api";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
 export default function AdminChatPage() {
   const { user } = useAuth(); // AuthContext থেকে admin user নাও
@@ -38,9 +38,17 @@ export default function AdminChatPage() {
     });
 
     // Real-time messages
-    socketRef.current.on("newMessage", (msg) => {
-      setMessages((prev) => [...prev, msg]);
-    });
+  socketRef.current.on("newMessage", (msg) => {
+  // ✅ শুধু selected conversation এর message নাও
+  setMessages((prev) => {
+    if (!msg._id) return prev;
+    const exists = prev.some(
+      (m) => m._id?.toString() === msg._id?.toString()
+    );
+    if (exists) return prev;
+    return [...prev, msg];
+  });
+});
 
     return () => socketRef.current?.disconnect();
   }, [user]);
@@ -55,7 +63,7 @@ export default function AdminChatPage() {
     if (!user) return;
     const load = async () => {
       try {
-        const { data } = await api.get("/chat/admin/conversations");
+        const { data } = await api.get("/api/chat/admin/conversations");
         if (data.success) setConversations(data.data);
       } catch (err) {
         console.error("load conversations error:", err);
@@ -73,11 +81,11 @@ export default function AdminChatPage() {
 
     try {
       // Messages load করো
-      const { data } = await api.get(`/chat/messages/${conv._id}`);
+      const { data } = await api.get(`/api/chat/messages/${conv._id}`);
       if (data.success) setMessages(data.data);
 
       // Read mark করো
-      await api.patch(`/chat/admin/read/${conv._id}`);
+      await api.patch(`/api/chat/admin/read/${conv._id}`);
 
       // Local state update
       setConversations((prev) =>
@@ -92,7 +100,7 @@ export default function AdminChatPage() {
   const handleSend = async () => {
     if (!inputText.trim() || !selectedConv) return;
     try {
-      await api.post("/chat/send", {
+      await api.post("/api/chat/send", {
         message: inputText,
         conversationId: selectedConv._id,
       });
