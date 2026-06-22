@@ -102,6 +102,20 @@ export const AuthProvider = ({ children }) => {
         hasInitialized.current = true;
     }, [fetchUser, pathname]);
 
+
+    // existing useEffect-এর নিচে add করো
+useEffect(() => {
+    const handleForceLogout = () => {
+        setUser(null);
+        setIsAuth(false);
+        setSessions([]);
+    };
+    window.addEventListener("auth:logout", handleForceLogout);
+    return () => window.removeEventListener("auth:logout", handleForceLogout);
+}, []);
+    
+    
+
     return (
         <AuthContext.Provider
             value={{

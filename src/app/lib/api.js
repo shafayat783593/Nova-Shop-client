@@ -59,6 +59,39 @@ api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
+
+        // ✅ 401 — access token expire, refresh করো
+        if (
+            error.response?.status === 401 &&
+            !originalRequest._retry &&
+            !originalRequest.url.includes("/api/auth/refresh-token")
+        ) {
+            if (isRefreshing) {
+                return new Promise((resolve, reject) => {
+                    failedQueue.push({ resolve, reject });
+                }).then(() => api(originalRequest)).catch((err) => Promise.reject(err));
+            }
+
+            originalRequest._retry = true;
+            isRefreshing = true;
+
+            try {
+                await api.post("/api/auth/refresh-token");
+                processQueue(null);
+                return api(originalRequest);
+            } catch (refreshError) {
+                processQueue(refreshError);
+                // refresh ও fail — force logout
+                if (typeof window !== "undefined") {
+                    window.dispatchEvent(new Event("auth:logout"));
+                }
+                return Promise.reject(refreshError);
+            } finally {
+                isRefreshing = false;
+            }
+        }
+
+        // ✅ 403 — CSRF error (existing code same থাকবে)
         if (
             error.response?.status === 403 &&
             !originalRequest._csrfRetry &&
@@ -76,50 +109,22 @@ api.interceptors.response.use(
                 isRefreshingCSRFToken = true;
 
                 try {
-                    // await api.post("/api/auth/refresh-csrf");
-                    // processCSRFQueue(null);
-                    // return api(originalRequest);
                     await api.post('/api/auth/refresh-csrf');
-
                     const newCsrf = getCookie('csrfToken');
                     if (newCsrf) {
                         originalRequest.headers['x-csrf-token'] = newCsrf;
                     }
-
                     processCSRFQueue(null);
                     return api(originalRequest);
-                } catch (error) {
-                    processCSRFQueue(error);
-                    console.error('Failed to refresh csrf token : ', error);
-                    return Promise.reject(error);
+                } catch (err) {
+                    processCSRFQueue(err);
+                    return Promise.reject(err);
                 } finally {
                     isRefreshingCSRFToken = false;
                 }
             }
-
-            if (isRefreshing) {
-                return new Promise((resolve, reject) => {
-                    failedQueue.push({ resolve, reject });
-                }).then(() => {
-                    return api(originalRequest);
-                });
-            }
-
-            // originalRequest._retry = true;
-            originalRequest._retry = true;
-            isRefreshing = true;
-
-            try {
-                await api.post('/api/auth/refresh-token');
-                processQueue(null);
-                return api(originalRequest);
-            } catch (error) {
-                processQueue(error, null);
-                return Promise.reject(error);
-            } finally {
-                isRefreshing = false;
-            }
         }
+
         return Promise.reject(error);
     }
 );

@@ -26,7 +26,7 @@ async function verifyToken(token) {
     }
 }
 
-export async function middleware(request) {
+export async function proxy(request) {
     const { pathname } = request.nextUrl;
 
     const accessToken = request.cookies.get("accessToken")?.value;
