@@ -99,7 +99,7 @@ export const useChat = () => {
         }
       }
 
-      const { data } = await api.post("/api/chat/send", body);
+      const { data } = await api.post("/api/chat/send", body) ;
 
       if (data.success) {
         if (!currentConv && data.conversationId) {
