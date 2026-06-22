@@ -60,7 +60,7 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        // ✅ 401 — access token expire, refresh করো
+        // ✅ 401 — token নেই বা expire
         if (
             error.response?.status === 401 &&
             !originalRequest._retry &&
@@ -81,7 +81,6 @@ api.interceptors.response.use(
                 return api(originalRequest);
             } catch (refreshError) {
                 processQueue(refreshError);
-                // refresh ও fail — force logout
                 if (typeof window !== "undefined") {
                     window.dispatchEvent(new Event("auth:logout"));
                 }
@@ -91,7 +90,7 @@ api.interceptors.response.use(
             }
         }
 
-        // ✅ 403 — CSRF error (existing code same থাকবে)
+        // ✅ 403 — শুধু CSRF handle করো
         if (
             error.response?.status === 403 &&
             !originalRequest._csrfRetry &&
