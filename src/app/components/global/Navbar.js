@@ -46,7 +46,7 @@ const ACCOUNT_LINKS = [
 // Role → dashboard redirect
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const ROLE_REDIRECT = {
-  admin: "/admin",
+  admin: "/  ",
   vendor: "/vendor",  // vendor → info page
   deliveryboy: "/deliveryboy",
   customer: "/customer",

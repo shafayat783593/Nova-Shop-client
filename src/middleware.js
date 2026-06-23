@@ -10,9 +10,9 @@ const PROTECTED_ROUTES = ["/admin", "/vendor", "/customer", "/deliveryboy"];
 // Role → নিজের home এবং allowed routes
 const ROLE_CONFIG = {
     admin: { home: "/admin", allowed: ["/admin"] },
-    vendor: { home: "/vendor", allowed: ["/vendor"] },
-    customer: { home: "/customer", allowed: ["/customer"] },
-    service: { home: "/customer", allowed: ["/customer"] },
+    // vendor: { home: "/vendor", allowed: ["/vendor"] },
+    // customer: { home: "/customer", allowed: ["/customer"] },
+    // service: { home: "/customer", allowed: ["/customer"] },
     deliveryboy: { home: "/deliveryboy", allowed: ["/deliveryboy"] },
 };
 
@@ -26,7 +26,7 @@ async function verifyToken(token) {
     }
 }
 
-export async function proxy(request) {
+export async function middleware(request) {
     const { pathname } = request.nextUrl;
 
     const accessToken = request.cookies.get("accessToken")?.value;
@@ -98,8 +98,8 @@ export async function proxy(request) {
 export const config = {
     matcher: [
         "/admin/:path*",
-        "/vendor/:path*",
-        "/customer/:path*",
+        // "/vendor/:path*",
+        // "/customer/:path*",
         "/deliveryboy/:path*",
         "/login",
         "/register",
