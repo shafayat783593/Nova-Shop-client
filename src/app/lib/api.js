@@ -9,7 +9,7 @@ function getCookie(name) {
 }
 
 const api = axios.create({
-    baseURL: server,
+    baseURL: "", // ✅ empty — same origin হবে, Chrome block করবে না
     withCredentials: true,
 });
 

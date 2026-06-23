@@ -13,10 +13,12 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isAuth, setIsAuth] = useState(false);
+
     const [sessions, setSessions] = useState([]);
     const [sessionsLoading, setSessionsLoading] = useState(false);
     const [revokingId, setRevokingId] = useState(null);
-
+    console.log("user data", user)
+    console.log("isAuth", isAuth)
     const fetchUser = useCallback(async ({ withLoading = false } = {}) => {
         if (withLoading) {
             setLoading(true);
