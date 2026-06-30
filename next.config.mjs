@@ -10,12 +10,17 @@ const nextConfig = {
     ],
   },
 
-  // ✅ এটা add করো
   async rewrites() {
     return [
+      // backend API proxy
       {
         source: "/api/:path*",
         destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/:path*`,
+      },
+      // Google OAuth success page → actual folder location
+      {
+        source: "/auth/google/success",
+        destination: "/google/success",
       },
     ];
   },

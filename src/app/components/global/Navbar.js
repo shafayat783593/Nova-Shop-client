@@ -37,6 +37,7 @@ const NAV_LINKS = [
 const ACCOUNT_LINKS = [
   { icon: User, label: "My Profile", href: "/account/profile", badge: null },
   { icon: Package, label: "My Orders", href: "/Myorder", badge: "orders" },
+  { icon: Settings, label: "Setting", href: "/setting", badge: "setting" },
   { icon: Heart, label: "Wishlist", href: "/wishlist", badge: "wishlist" },
   { icon: MapPin, label: "Addresses", href: "/address", badge: null },
   { icon: CreditCard, label: "Payment Methods", href: "/account/payment", badge: null },
@@ -46,7 +47,7 @@ const ACCOUNT_LINKS = [
 // Role → dashboard redirect
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const ROLE_REDIRECT = {
-  admin: "/  ",
+  admin: "/admin",
   vendor: "/vendor",  // vendor → info page
   deliveryboy: "/deliveryboy",
   customer: "/customer",

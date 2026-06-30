@@ -1,5 +1,4 @@
 'use client';
-
 import { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
@@ -10,57 +9,51 @@ const GoogleSuccessPage = () => {
     const searchParams = useSearchParams();
     const { fetchUser } = useAuth();
 
-    useEffect(() => {
-        const handleGoogleSuccess = async () => {
-            const error = searchParams.get('error');
+useEffect(() => {
+    const handleGoogleSuccess = async () => {
+        const error = searchParams.get('error');
+        if (error) {
+            toast.error(error === 'MAX_SESSIONS_REACHED' ? 'Maximum devices reached.' : 'Google login failed.');
+            router.push('/login');
+            return;
+        }
 
-            if (error === 'MAX_SESSIONS_REACHED') {
-                toast.error('Maximum devices reached. Please logout from another device first.');
-                router.push('/login');
-                return;
-            }
+        const accessToken = searchParams.get('accessToken');
+        const refreshToken = searchParams.get('refreshToken');
+        const csrfToken = searchParams.get('csrfToken');
+        const returnUrl = searchParams.get('returnUrl') || '/';
 
-            if (error) {
-                toast.error('Google login failed. Please try again.');
-                router.push('/login');
-                return;
-            }
+        if (!accessToken || !refreshToken) {
+            toast.error('Login failed. Please try again.');
+            router.push('/login');
+            return;
+        }
 
-            // csrfToken query param থেকে নিয়ে localStorage-এ রাখো
-            const csrfToken = searchParams.get('csrfToken');
-            if (csrfToken) {
-                localStorage.setItem('csrfToken', csrfToken);
-            }
+        const isProduction = window.location.hostname !== 'localhost';
+        const secure = isProduction ? 'Secure;' : '';
 
-            try {
-                const user = await fetchUser();
-                toast.success(`Welcome, ${user?.name}!`);
+        document.cookie = `accessToken=${accessToken}; Path=/; ${secure} SameSite=Lax; Max-Age=900`;
+        document.cookie = `refreshToken=${refreshToken}; Path=/; ${secure} SameSite=Lax; Max-Age=604800`;
+        document.cookie = `csrfToken=${csrfToken}; Path=/; ${secure} SameSite=Lax; Max-Age=604800`;
 
-                const roleRedirects = {
-                    admin: '/admin',
-                    vendor: '/vendor',
-                    deliveryboy: '/deliveryboy',
-                    customer: '/',
-                };
+        // cookie settle হওয়ার জন্য fetchUser আগেই call করে নাও (navigate করার আগে)
+        const user = await fetchUser().catch(() => null);
+        if (user) toast.success(`Welcome, ${user?.name}!`);
 
-                router.push(roleRedirects[user?.role] || '/');
-            } catch {
-                toast.error('Something went wrong. Please login again.');
-                router.push('/login');
-            }
-        };
+        window.location.href = decodeURIComponent(returnUrl);
+    };
 
-        handleGoogleSuccess();
-    }, []);
+    handleGoogleSuccess();
+}, []);
 
-return (
-    <div className="min-h-screen flex items-center justify-center bg-bg">
-        <div className="flex flex-col items-center gap-4">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
-            <p className="text-body text-sm">Signing you in...</p>
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-bg">
+            <div className="flex flex-col items-center gap-4">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+                <p className="text-body text-sm">Signing you in...</p>
+            </div>
         </div>
-    </div>
-);
+    );
 };
 
 export default GoogleSuccessPage;

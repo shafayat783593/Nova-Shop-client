@@ -19,25 +19,31 @@ export const AuthProvider = ({ children }) => {
     const [revokingId, setRevokingId] = useState(null);
     console.log("user data", user)
     console.log("isAuth", isAuth)
-    const fetchUser = useCallback(async ({ withLoading = false } = {}) => {
-        if (withLoading) {
-            setLoading(true);
-        }
 
-        
-        try {
-            const { data } = await api.get("/api/auth/me");
-            setUser(data.user);
-            setIsAuth(true);
-            return data.user;
-        } catch {
-            setUser(null);
-            setIsAuth(false);
-            return null;
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+  
+
+const fetchUser = useCallback(async ({ withLoading = false } = {}) => {
+    if (withLoading) setLoading(true);
+    try {
+        const { data } = await api.get("/api/auth/me");
+        setUser(data.user);
+        setIsAuth(true);
+        return data.user;
+    } catch {
+        setUser(null);
+        setIsAuth(false);
+        return null;
+    } finally {
+        setLoading(false);
+    }
+}, []);
+
+useEffect(() => {
+    if (pathname.startsWith('/auth/')) return;
+    fetchUser({ withLoading: !hasInitialized.current });
+    hasInitialized.current = true;
+}, [fetchUser, pathname]);
+
 
     const fetchSessions = useCallback(async () => {
         setSessionsLoading(true);
@@ -99,10 +105,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    useEffect(() => {
-        fetchUser({ withLoading: !hasInitialized.current });
-        hasInitialized.current = true;
-    }, [fetchUser, pathname]);
+
 
 
     // existing useEffect-এর নিচে add করো

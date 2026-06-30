@@ -1,18 +1,13 @@
 import { NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// প্রতিটা role শুধু নিজের route এ যেতে পারবে
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const AUTH_ROUTES = ["/login", "/register"];
-const PROTECTED_ROUTES = ["/admin", "/vendor", "/customer", "/deliveryboy"];
+const PROTECTED_ROUTES = ["/admin", "/vendor", "/deliveryboy"]; // ✅ /customer সরানো
 
-// Role → নিজের home এবং allowed routes
 const ROLE_CONFIG = {
     admin: { home: "/admin", allowed: ["/admin"] },
-    // vendor: { home: "/vendor", allowed: ["/vendor"] },
-    // customer: { home: "/customer", allowed: ["/customer"] },
-    // service: { home: "/customer", allowed: ["/customer"] },
+    vendor: { home: "/vendor", allowed: ["/vendor"] },
+    customer: { home: "/", allowed: [] },         // ✅ home = "/", allowed খালি
     deliveryboy: { home: "/deliveryboy", allowed: ["/deliveryboy"] },
 };
 
@@ -33,9 +28,6 @@ export async function middleware(request) {
     const isProtected = PROTECTED_ROUTES.some((r) => pathname.startsWith(r));
     const isAuthPage = AUTH_ROUTES.some((r) => pathname.startsWith(r));
 
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // Token নেই → login এ পাঠাও
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     if (!accessToken) {
         if (isProtected) {
             const url = new URL("/login", request.url);
@@ -45,50 +37,42 @@ export async function middleware(request) {
         return NextResponse.next();
     }
 
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // Token verify
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const payload = await verifyToken(accessToken);
 
-    // Expire → api.js refresh করবে
     if (!payload) {
-        // token invalid → clear cookie + login
-        const res = NextResponse.redirect(new URL("/login", request.url));
-        res.cookies.delete("accessToken");
-        return res;
+        // ✅ expire হলে public page-এ pass করো, protected হলে login
+        if (isProtected) {
+            const url = new URL("/login", request.url);
+            url.searchParams.set("returnUrl", pathname);
+            const res = NextResponse.redirect(url);
+            res.cookies.delete("accessToken");
+            return res;
+        }
+        return NextResponse.next(); // ✅ login/register page-এ pass করো
     }
+
     const role = payload.role?.toLowerCase();
     const config = ROLE_CONFIG[role];
 
-    // Unknown role → login
+    // ✅ Unknown role → pass করো, login-এ না পাঠাও
     if (!config) {
-        return NextResponse.redirect(new URL("/login", request.url));
+        return NextResponse.next();
     }
 
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // Login/Register → home এ redirect
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Already logged in → auth page-এ গেলে home-এ redirect
     if (isAuthPage) {
         return NextResponse.redirect(new URL(config.home, request.url));
     }
 
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // Role check — প্রতিটা role শুধু নিজের route এ যাবে
-    //
-    // admin  → /customer যাবে? ❌ → /admin এ redirect
-    // vendor → /admin যাবে?   ❌ → /vendor এ redirect
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     if (isProtected) {
         const isAllowed = config.allowed.some((prefix) =>
             pathname.startsWith(prefix)
         );
-
         if (!isAllowed) {
             return NextResponse.redirect(new URL(config.home, request.url));
         }
     }
 
-    // ✅ Pass — header এ role set করো
     const response = NextResponse.next();
     response.headers.set("x-user-role", role);
     response.headers.set("x-user-id", String(payload.sub || payload.id || ""));
@@ -98,9 +82,8 @@ export async function middleware(request) {
 export const config = {
     matcher: [
         "/admin/:path*",
-        // "/vendor/:path*",
-        // "/customer/:path*",
-        "/deliveryboy/:path*",
+        "/vendor/:path*",
+        "/deliveryboy/:path*", // ✅ /customer/:path* সরানো
         "/login",
         "/register",
     ],
