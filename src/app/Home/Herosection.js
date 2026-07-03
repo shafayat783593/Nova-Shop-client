@@ -71,7 +71,7 @@ export default function HeroSection() {
                             <p className="text-xl mb-8 max-w-lg mx-auto">
                                 {slides[index].description}
                             </p>
-                            <a href={slides[index].link} className="bg-primary hover:bg-secondary text-white px-8 py-3 rounded-full font-bold transition-all">
+                            <a href="/products" className="bg-primary hover:bg-secondary text-white px-8 py-3 rounded-full font-bold transition-all">
                                 Shop Now
                             </a>
                         </div>
