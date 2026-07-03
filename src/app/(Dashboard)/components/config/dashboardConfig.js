@@ -32,8 +32,10 @@ export const DASHBOARD_MENU = {
     // Delivery & Orders
     { name: "Manage DeliveryBoy", path: "/admin/DeliveryBoy", icon: Truck },
     { name: "Manage Orders", path: "/admin/Orders", icon: ClipboardList },
-    {name:"manage chat", path: "/admin/admin-chat", icon: MessageCircle },
+    { name: "manage chat", path: "/admin/admin-chat", icon: MessageCircle },
+    { name: "Manage Users", path: "/admin/manage-users", icon: Users },
   ],
+
 
   customer: [
     { name: "My Dashboard", path: "/customer", icon: Home },
