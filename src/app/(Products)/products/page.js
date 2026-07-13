@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import WishlistButton from "../components/Wishlistbutton";
 import AddToCartButton from "../components/AddToCartButton";
+import { motion, AnimatePresence } from "framer-motion";
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SKELETON
@@ -17,12 +19,15 @@ import AddToCartButton from "../components/AddToCartButton";
 function Shimmer({ className = "" }) {
     return (
         <div className={`relative overflow-hidden bg-[var(--accent-opacity)] rounded-xl ${className}`}>
-            <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite]"
-                style={{ background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.07),transparent)" }} />
+            <motion.div
+                className="absolute inset-0"
+                style={{ background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.07),transparent)" }}
+                animate={{ x: ["-100%", "100%"] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+            />
         </div>
     );
 }
-
 function CardSkeleton() {
     return (
         <div className="bg-card rounded-2xl overflow-hidden border border-accent-10">
@@ -56,13 +61,21 @@ function Stars({ rating = 0 }) {
         </div>
     );
 }
-
 // ─────────────────────────────────────────────────────────────────────────────
 // PRODUCT CARD
 // ─────────────────────────────────────────────────────────────────────────────
 // ─── ProductCard (Grid view only — key changes) ────────────────────────────
 
-function ProductCard({ product, view = "grid" }) {
+
+const gridCardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: (i) => ({
+        opacity: 1,
+        y: 0,
+        transition: { delay: Math.min(i * 0.04, 0.4), duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] },
+    }),
+}
+function ProductCard({ product, view = "grid", index = 0 }) {
     const router = useRouter();
 
     const price = product.discountedPrice ?? product.basePrice;
@@ -73,14 +86,26 @@ function ProductCard({ product, view = "grid" }) {
 
     if (view === "list") {
         return (
-            <div
+            <motion.div
+                custom={index}
+                initial="hidden"
+                animate="visible"
+                variants={gridCardVariants}
+                layout
                 onClick={() => router.push(`/products/${product.slug}`)}
-                className="group bg-card rounded-2xl border border-accent-10 overflow-hidden flex gap-0 cursor-pointer hover:border-[var(--color-primary)]/40 hover:shadow-lg transition-all duration-300"
+                whileHover={{ y: -3, boxShadow: "0 12px 28px rgba(0,0,0,0.08)", borderColor: "var(--color-primary)" }}
+                transition={{ type: "spring", stiffness: 300, damping: 24 }}
+                className="group bg-card rounded-2xl border border-accent-10 overflow-hidden flex gap-0 cursor-pointer"
             >
                 <div className="w-44 flex-shrink-0 relative overflow-hidden bg-bg">
                     {product.images?.[0] ? (
-                        <img src={product.images[0]} alt={product.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <motion.img
+                            src={product.images[0]}
+                            alt={product.name}
+                            className="w-full h-full object-cover"
+                            whileHover={{ scale: 1.06 }}
+                            transition={{ type: "spring", stiffness: 220, damping: 20 }}
+                        />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center">
                             <Package size={32} className="text-body opacity-20" />
@@ -117,24 +142,33 @@ function ProductCard({ product, view = "grid" }) {
                         </div>
                     </div>
                 </div>
-            </div>
+            </motion.div>
         );
     }
 
     // ── Grid view ──────────────────────────────────────────────────────────────
     return (
-        <div
+        <motion.div
+            custom={index}
+            initial="hidden"
+            animate="visible"
+            variants={gridCardVariants}
+            layout
             onClick={() => router.push(`/products/${product.slug}`)}
-            className="group bg-card rounded-[20px] border border-accent-10 overflow-hidden cursor-pointer
-                       hover:border-[var(--color-primary)]/30
-                       hover:shadow-[0_20px_40px_rgba(127,119,221,0.13)]
-                       hover:-translate-y-1 transition-all duration-300 flex flex-col"
+            whileHover={{ y: -6, boxShadow: "0 20px 40px rgba(127,119,221,0.13)", borderColor: "rgba(127,119,221,0.3)" }}
+            transition={{ type: "spring", stiffness: 300, damping: 24 }}
+            className="group bg-card rounded-[20px] border border-accent-10 overflow-hidden cursor-pointer flex flex-col"
         >
             {/* Image */}
             <div className="relative aspect-[4/3] overflow-hidden bg-bg">
                 {product.images?.[0] ? (
-                    <img src={product.images[0]} alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-500" />
+                    <motion.img
+                        src={product.images[0]}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                        whileHover={{ scale: 1.06 }}
+                        transition={{ type: "spring", stiffness: 220, damping: 20 }}
+                    />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center">
                         <Package size={36} className="text-body opacity-20" />
@@ -156,22 +190,29 @@ function ProductCard({ product, view = "grid" }) {
                 </div>
 
                 {/* Wishlist — circular glass button */}
-                <div
-                    className="absolute top-2.5 right-2.5"
-                    onClick={e => e.stopPropagation()}
-                >
-                    <div className="w-8 h-8 rounded-full bg-white/85 backdrop-blur-sm flex items-center justify-center shadow-sm hover:bg-white hover:scale-110 transition-all duration-200">
+                <div className="absolute top-2.5 right-2.5" onClick={e => e.stopPropagation()}>
+                    <motion.div
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.92 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                        className="w-8 h-8 rounded-full bg-white/85 backdrop-blur-sm flex items-center justify-center shadow-sm"
+                    >
                         <WishlistButton productId={product._id} product={product} size="icon" />
-                    </div>
+                    </motion.div>
                 </div>
 
-                {/* Add to Cart — gradient overlay, slides up on hover */}
-                <div
-                    className="absolute bottom-0 left-0 right-0 p-2.5
-                                bg-gradient-to-t from-black/20 to-transparent
-                                translate-y-full group-hover:translate-y-0
-                                transition-transform duration-300 ease-out"
+                {/* Add to Cart — slides up on hover */}
+                <motion.div
+                    className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/20 to-transparent"
                     onClick={e => e.stopPropagation()}
+                    initial={{ y: "100%" }}
+                    whileHover={{ y: 0 }}
+                    animate={{ y: "100%" }}
+                    whileInView={{ y: "100%" }}
+                    variants={{
+                        rest: { y: "100%" },
+                        hover: { y: 0 },
+                    }}
                 >
                     <AddToCartButton
                         productId={product._id}
@@ -180,28 +221,24 @@ function ProductCard({ product, view = "grid" }) {
                         size="default"
                         className="w-full justify-center text-[12px] font-bold tracking-wide py-2.5 rounded-xl"
                     />
-                </div>
+                </motion.div>
             </div>
 
             {/* Info */}
             <div className="p-4 flex flex-col flex-1 gap-1.5">
-                {/* Category pill */}
                 <span className="inline-block self-start text-[10px] text-[var(--color-primary)] font-bold uppercase tracking-widest bg-[var(--color-primary)]/10 px-2.5 py-1 rounded-full">
                     {product.category}
                 </span>
 
-                {/* Name */}
                 <h3 className="text-heading font-bold text-sm leading-snug line-clamp-2 flex-1 group-hover:text-[var(--color-primary)] transition-colors duration-200">
                     {product.name}
                 </h3>
 
-                {/* Stars */}
                 <div className="flex items-center gap-1.5">
                     <Stars rating={product.averageRating} />
                     <span className="text-body text-[11px]">({product.totalReviews || 0})</span>
                 </div>
 
-                {/* Price */}
                 <div className="flex items-baseline gap-2 mt-0.5">
                     <span className="text-heading font-black text-base tracking-tight">
                         ৳{price?.toLocaleString()}
@@ -213,7 +250,7 @@ function ProductCard({ product, view = "grid" }) {
                     )}
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 }
 // ─────────────────────────────────────────────────────────────────────────────

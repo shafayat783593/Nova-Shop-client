@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import api from '@/app/lib/api'; // Ensure this points to your axios instance
+import api from '@/app/lib/api';
 import Loading from '../components/global/Loading';
 
 export default function HeroSection() {
@@ -11,12 +11,10 @@ export default function HeroSection() {
     const [index, setIndex] = useState(0);
     const [loading, setLoading] = useState(true);
 
-    // Fetch Banners from API
     useEffect(() => {
         const fetchBanners = async () => {
             try {
                 const response = await api.get("/api/banners");
-                // Filter to only show active banners
                 const activeBanners = response.data.filter(b => b.isActive);
                 setSlides(activeBanners);
             } catch (error) {
@@ -28,7 +26,6 @@ export default function HeroSection() {
         fetchBanners();
     }, []);
 
-    // Auto-slide effect
     useEffect(() => {
         if (slides.length === 0) return;
         const timer = setInterval(() => {
@@ -44,45 +41,45 @@ export default function HeroSection() {
     const prevSlide = () => setIndex((prev) => (prev - 1 + slides.length) % slides.length);
 
     return (
-        <main className="bg-bg min-h-screen">
-            <section className="relative h-[600px] w-full overflow-hidden flex items-center justify-center bg-card border-b border-accent-10">
+        <main className="bg-bg">
+            <section className="relative h-[280px] sm:h-[380px] md:h-[480px] lg:h-[600px] w-full overflow-hidden flex items-center justify-center bg-card border-b border-accent-10">
                 <AnimatePresence mode='popLayout'>
                     <motion.div
                         key={slides[index]._id}
-                        // স্লাইডটি ডান দিক থেকে আসবে (100% থেকে শুরু)
                         initial={{ x: '100%' }}
-                        // সেন্টারে এসে স্থির হবে
                         animate={{ x: 0 }}
-                        // এবং বাম দিকে চলে যাবে (-100% এ শেষ হবে)
                         exit={{ x: '-100%' }}
-                        // ট্রানজিশন স্মুথ করার জন্য 'easeInOut' ব্যবহার করুন
                         transition={{ duration: 0.7, ease: "easeInOut" }}
-                        // 'mode=popLayout' এর জন্য 'h-[600px]' নির্দিষ্ট করে দেওয়া হয়েছে
-                        className="absolute inset-0 w-full h-[600px] flex flex-col items-center justify-center text-center px-6 bg-cover bg-center"
+                        className="absolute inset-0 w-full h-full flex flex-col items-center justify-center text-center px-4 sm:px-6 bg-cover bg-center"
                         style={{ backgroundImage: `url(${slides[index].imageUrl})` }}
                     >
-                        {/* ইমেজের উপর টেক্সট স্পষ্ট করার জন্য overlay (ঐচ্ছিক) */}
                         <div className="absolute inset-0 bg-black/40"></div>
 
-                        <div className="relative z-10 text-white">
-                            <h1 className="font-display text-5xl md:text-7xl mb-6">
+                        <div className="relative z-10 text-white max-w-[90%] sm:max-w-lg">
+                            <h1 className="font-display text-2xl sm:text-4xl md:text-6xl lg:text-7xl mb-2 sm:mb-4 md:mb-6 leading-tight">
                                 {slides[index].title}
                             </h1>
-                            <p className="text-xl mb-8 max-w-lg mx-auto">
+                            <p className="text-xs sm:text-base md:text-lg lg:text-xl mb-4 sm:mb-6 md:mb-8 mx-auto line-clamp-2 sm:line-clamp-none">
                                 {slides[index].description}
                             </p>
-                            <a href="/products" className="bg-primary hover:bg-secondary text-white px-8 py-3 rounded-full font-bold transition-all">
+                            <a href="/products" className="inline-block bg-primary hover:bg-secondary text-white px-4 py-2 sm:px-6 sm:py-2.5 md:px-8 md:py-3 rounded-full text-xs sm:text-sm md:text-base font-bold transition-all">
                                 Shop Now
                             </a>
                         </div>
                     </motion.div>
                 </AnimatePresence>
 
-                <button onClick={prevSlide} className="absolute left-4 p-2 bg-bg border border-accent-10 rounded-full text-heading hover:bg-accent-opacity">
-                    <ChevronLeft />
+                <button
+                    onClick={prevSlide}
+                    className="absolute left-2 sm:left-4 z-20 p-1.5 sm:p-2 bg-bg border border-accent-10 rounded-full text-heading hover:bg-accent-opacity"
+                >
+                    <ChevronLeft size={18} className="sm:w-6 sm:h-6" />
                 </button>
-                <button onClick={nextSlide} className="absolute right-4 p-2 bg-bg border border-accent-10 rounded-full text-heading hover:bg-accent-opacity">
-                    <ChevronRight />
+                <button
+                    onClick={nextSlide}
+                    className="absolute right-2 sm:right-4 z-20 p-1.5 sm:p-2 bg-bg border border-accent-10 rounded-full text-heading hover:bg-accent-opacity"
+                >
+                    <ChevronRight size={18} className="sm:w-6 sm:h-6" />
                 </button>
             </section>
         </main>

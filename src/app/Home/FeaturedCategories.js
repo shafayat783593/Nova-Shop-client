@@ -1,9 +1,8 @@
-
-
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, ArrowRight, Package } from "lucide-react";
 import api from "@/app/lib/api";
 
@@ -26,28 +25,45 @@ const getEmoji = (name = "") => {
     return EMOJI_MAP[firstWord] || "🛍️";
 };
 
+// ─── Shimmer block (used in skeleton + image loading) ────────────────────────
+function Shimmer() {
+    return (
+        <motion.div
+            className="absolute inset-0"
+            style={{ background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent)" }}
+            animate={{ x: ["-100%", "100%"] }}
+            transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
+        />
+    );
+}
+
 // ─── Skeleton card ────────────────────────────────────────────────────────────
 function SkeletonCard() {
     return (
         <div className="flex flex-col items-center gap-2 flex-shrink-0" style={{ width: 120 }}>
-            <div className="relative overflow-hidden rounded-2xl bg-[var(--accent-opacity)]"
-                style={{ width: 120, height: 120 }}>
-                <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]"
-                    style={{ background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent)" }} />
+            <div className="relative overflow-hidden rounded-2xl bg-[var(--accent-opacity)]" style={{ width: 120, height: 120 }}>
+                <Shimmer />
             </div>
             <div className="relative overflow-hidden rounded-lg bg-[var(--accent-opacity)] w-20 h-3.5">
-                <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]"
-                    style={{ background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent)" }} />
+                <Shimmer />
             </div>
             <div className="relative overflow-hidden rounded-lg bg-[var(--accent-opacity)] w-12 h-3">
-                <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]"
-                    style={{ background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent)" }} />
+                <Shimmer />
             </div>
         </div>
     );
 }
 
-// ─── Single category card — Daraz style ──────────────────────────────────────
+// ─── Single category card ────────────────────────────────────────────────────
+const cardVariants = {
+    hidden: { opacity: 0, y: 16 },
+    visible: (i) => ({
+        opacity: 1,
+        y: 0,
+        transition: { delay: Math.min(i * 0.05, 0.4), duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] },
+    }),
+};
+
 function CategoryCard({ cat, index }) {
     const router = useRouter();
     const [imgLoaded, setImgLoaded] = useState(false);
@@ -55,84 +71,106 @@ function CategoryCard({ cat, index }) {
     const hasImg = cat.image && !imgError;
 
     return (
-        <button
+        <motion.button
+            custom={index}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-40px" }}
+            variants={cardVariants}
             onClick={() => router.push(`/products?category=${encodeURIComponent(cat.name)}`)}
             className="flex flex-col items-center gap-2.5 flex-shrink-0 group focus:outline-none"
-            style={{
-                width: 110,
-                animation: "catFadeUp 0.4s ease both",
-                animationDelay: `${Math.min(index * 50, 400)}ms`,
-            }}
+            style={{ width: 110 }}
         >
             {/* Image box */}
-            <div
-                className="relative overflow-hidden transition-all duration-300 ease-[cubic-bezier(.34,1.56,.64,1)]
-                           group-hover:-translate-y-1.5
-                           group-hover:shadow-[0_16px_36px_rgba(127,119,221,0.18)]
-                           group-hover:border-[var(--color-primary)]/35"
+            <motion.div
+                className="relative overflow-hidden"
                 style={{
                     width: 110, height: 110,
                     borderRadius: 24,
                     background: "var(--accent-opacity)",
                     border: "1.5px solid rgba(127,119,221,0.12)",
                 }}
+                whileHover={{
+                    y: -6,
+                    boxShadow: "0 16px 36px rgba(127,119,221,0.18)",
+                    borderColor: "rgba(127,119,221,0.35)",
+                }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
                 {/* Image */}
                 {hasImg && (
-                    <img
+                    <motion.img
                         src={cat.image}
                         alt={cat.name}
                         loading="lazy"
                         onLoad={() => setImgLoaded(true)}
                         onError={() => setImgError(true)}
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.08] transition-transform duration-500"
-                        style={{ opacity: imgLoaded ? 1 : 0, transition: "opacity 0.3s ease, transform 0.5s ease" }}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        initial={false}
+                        animate={{ opacity: imgLoaded ? 1 : 0 }}
+                        whileHover={{ scale: 1.08 }}
+                        transition={{ opacity: { duration: 0.3 }, scale: { type: "spring", stiffness: 250, damping: 20 } }}
                     />
                 )}
 
-                {/* Shimmer */}
-                {hasImg && !imgLoaded && (
-                    <div className="absolute inset-0 bg-[var(--accent-opacity)]">
-                        <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]"
-                            style={{ background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent)" }} />
-                    </div>
-                )}
+                {/* Shimmer while image loads */}
+                <AnimatePresence>
+                    {hasImg && !imgLoaded && (
+                        <motion.div
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-[var(--accent-opacity)]"
+                        >
+                            <Shimmer />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* Emoji fallback */}
-                {(!hasImg || !imgLoaded) && (
-                    <div className={`absolute inset-0 flex items-center justify-center text-4xl transition-opacity duration-300 ${imgLoaded ? "opacity-0" : "opacity-100"}`}>
-                        {getEmoji(cat.name)}
-                    </div>
-                )}
+                <AnimatePresence>
+                    {(!hasImg || !imgLoaded) && (
+                        <motion.div
+                            initial={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 flex items-center justify-center text-4xl"
+                        >
+                            {getEmoji(cat.name)}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
-                {/* Dark gradient overlay — fades in on hover */}
-                <div
-                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                {/* Dark gradient overlay on hover */}
+                <motion.div
+                    className="absolute inset-0 pointer-events-none"
                     style={{ background: "linear-gradient(to top, rgba(60,52,137,0.55) 0%, transparent 55%)" }}
+                    initial={{ opacity: 0 }}
+                    whileHover={{ opacity: 1 }}
+                    transition={{ duration: 0.25 }}
                 />
 
                 {/* Item count pill — slides up on hover */}
                 {cat.productCount > 0 && (
-                    <div className="absolute bottom-0 left-0 right-0 flex justify-center pb-2
-                                    opacity-0 group-hover:opacity-100
-                                    translate-y-1 group-hover:translate-y-0
-                                    transition-all duration-300 pointer-events-none">
-                        <span className="text-white text-[9px] font-bold tracking-widest uppercase
-                                         bg-white/15 backdrop-blur-sm
-                                         px-2.5 py-0.5 rounded-full
-                                         border border-white/20">
+                    <motion.div
+                        className="absolute bottom-0 left-0 right-0 flex justify-center pb-2 pointer-events-none"
+                        initial={{ opacity: 0, y: 4 }}
+                        whileHover={{ opacity: 1, y: 0 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 22 }}
+                    >
+                        <span className="text-white text-[9px] font-bold tracking-widest uppercase bg-white/15 backdrop-blur-sm px-2.5 py-0.5 rounded-full border border-white/20">
                             {cat.productCount} items
                         </span>
-                    </div>
+                    </motion.div>
                 )}
-            </div>
+            </motion.div>
 
             {/* Label */}
             <div className="text-center px-1 w-full">
-                <p className="text-heading text-[12px] font-bold leading-tight line-clamp-2
-                               group-hover:text-[var(--color-primary)] transition-colors duration-200">
+                <motion.p
+                    className="text-heading text-[12px] font-bold leading-tight line-clamp-2"
+                    whileHover={{ color: "var(--color-primary)" }}
+                    transition={{ duration: 0.2 }}
+                >
                     {cat.name}
-                </p>
+                </motion.p>
                 {cat.productCount > 0 && (
                     <p className="text-body text-[10px] mt-0.5 font-medium opacity-60">
                         {cat.productCount > 999
@@ -141,9 +179,10 @@ function CategoryCard({ cat, index }) {
                     </p>
                 )}
             </div>
-        </button>
+        </motion.button>
     );
 }
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function FeaturedCategories() {
     const router = useRouter();
@@ -160,7 +199,6 @@ export default function FeaturedCategories() {
             .finally(() => setLoading(false));
     }, []);
 
-    // Check scroll edges
     const checkEdges = useCallback(() => {
         const el = trackRef.current;
         if (!el) return;
@@ -189,10 +227,7 @@ export default function FeaturedCategories() {
     return (
         <section className="py-10 sm:py-14 bg-bg">
             <style>{`
-                @keyframes shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
-                @keyframes catFadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
                 .cat-track::-webkit-scrollbar { display: none; }
-                .scale-108 { transform: scale(1.08); }
             `}</style>
 
             <div className="max-w-7xl mx-auto px-4 lg:px-8">
@@ -200,54 +235,70 @@ export default function FeaturedCategories() {
                 {/* ── Header ── */}
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                        {/* Accent bar */}
                         <div className="w-1 h-6 rounded-full" style={{ background: "var(--color-primary)" }} />
-                        <h2 className="text-heading  text-xl sm:text-2xl"
-                 >
-                            Categories
-                        </h2>
+                        <h2 className="text-heading text-xl sm:text-2xl">Categories</h2>
                     </div>
 
                     <div className="flex items-center gap-2">
-                        {/* Arrow buttons */}
-                        <button
+                        <motion.button
                             onClick={() => slide(-1)}
                             disabled={!canLeft}
-                            className="w-8 h-8 rounded-full border border-accent-10 bg-card flex items-center justify-center text-heading disabled:opacity-25 hover:border-[var(--color-primary)]/40 hover:bg-[var(--accent-opacity)] transition-all duration-200"
+                            whileHover={canLeft ? { scale: 1.08 } : {}}
+                            whileTap={canLeft ? { scale: 0.92 } : {}}
+                            className="w-8 h-8 rounded-full border border-accent-10 bg-card flex items-center justify-center text-heading disabled:opacity-25"
                         >
                             <ChevronLeft size={15} />
-                        </button>
-                        <button
+                        </motion.button>
+                        <motion.button
                             onClick={() => slide(1)}
                             disabled={!canRight}
-                            className="w-8 h-8 rounded-full border border-accent-10 bg-card flex items-center justify-center text-heading disabled:opacity-25 hover:border-[var(--color-primary)]/40 hover:bg-[var(--accent-opacity)] transition-all duration-200"
+                            whileHover={canRight ? { scale: 1.08 } : {}}
+                            whileTap={canRight ? { scale: 0.92 } : {}}
+                            className="w-8 h-8 rounded-full border border-accent-10 bg-card flex items-center justify-center text-heading disabled:opacity-25"
                         >
                             <ChevronRight size={15} />
-                        </button>
+                        </motion.button>
 
-                        <button
+                        <motion.button
                             onClick={() => router.push("/products")}
-                            className="ml-1 flex items-center gap-1 text-sm font-bold group transition-colors"
+                            whileHover="hover"
+                            className="ml-1 flex items-center gap-1 text-sm font-bold"
                             style={{ color: "var(--color-primary)" }}
                         >
                             See all
-                            <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform duration-200" />
-                        </button>
+                            <motion.span
+                                variants={{ hover: { x: 3 } }}
+                                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                className="inline-flex"
+                            >
+                                <ArrowRight size={13} />
+                            </motion.span>
+                        </motion.button>
                     </div>
                 </div>
 
                 {/* ── Scrollable track ── */}
                 <div className="relative">
-                    {/* Left fade mask */}
-                    {canLeft && (
-                        <div className="absolute left-0 top-0 bottom-0 w-14 z-10 pointer-events-none"
-                            style={{ background: "linear-gradient(to right, var(--bg), transparent)" }} />
-                    )}
-                    {/* Right fade mask */}
-                    {canRight && (
-                        <div className="absolute right-0 top-0 bottom-0 w-14 z-10 pointer-events-none"
-                            style={{ background: "linear-gradient(to left, var(--bg), transparent)" }} />
-                    )}
+                    <AnimatePresence>
+                        {canLeft && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute left-0 top-0 bottom-0 w-14 z-10 pointer-events-none"
+                                style={{ background: "linear-gradient(to right, var(--bg), transparent)" }}
+                            />
+                        )}
+                        {canRight && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute right-0 top-0 bottom-0 w-14 z-10 pointer-events-none"
+                                style={{ background: "linear-gradient(to left, var(--bg), transparent)" }}
+                            />
+                        )}
+                    </AnimatePresence>
 
                     <div
                         ref={trackRef}
@@ -263,14 +314,20 @@ export default function FeaturedCategories() {
                     </div>
                 </div>
 
-                {/* ── Row 2: overflow categories as text pills (Daraz style) ── */}
+                {/* ── Row 2: overflow categories as pills ── */}
                 {!loading && categories.length > 8 && (
                     <div className="mt-5 flex flex-wrap gap-2">
-                        {categories.slice(8).map((cat) => (
-                            <button
+                        {categories.slice(8).map((cat, i) => (
+                            <motion.button
                                 key={cat.name}
+                                initial={{ opacity: 0, y: 8 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: Math.min(i * 0.03, 0.3), duration: 0.3 }}
+                                whileHover={{ scale: 1.04 }}
+                                whileTap={{ scale: 0.96 }}
                                 onClick={() => router.push(`/products?category=${encodeURIComponent(cat.name)}`)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-accent-10 bg-card text-xs font-semibold text-body hover:text-heading hover:border-[var(--color-primary)]/35 hover:bg-[var(--accent-opacity)] transition-all duration-200"
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-accent-10 bg-card text-xs font-semibold text-body"
                             >
                                 <span className="text-sm">{getEmoji(cat.name)}</span>
                                 {cat.name}
@@ -279,7 +336,7 @@ export default function FeaturedCategories() {
                                         ({cat.productCount})
                                     </span>
                                 )}
-                            </button>
+                            </motion.button>
                         ))}
                     </div>
                 )}
