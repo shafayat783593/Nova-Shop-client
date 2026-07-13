@@ -22,7 +22,7 @@ export default function ContactPage() {
 
     try {
       // আপনার ব্যাকএন্ডের ফুল ইউআরএল (যেমন: http://localhost:5000/api/contact) অথবা রিলেটিভ পাথ
-      await axios.post("/api/contact", formData);
+      await axios.post(`${NEXT_PUBLIC_BACKEND_URL}/api/contact`, formData);
       
       setIsSubmitted(true);
       setFormData({ name: "", email: "", subject: "", message: "" });
