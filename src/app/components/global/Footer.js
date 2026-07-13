@@ -1,4 +1,3 @@
-// components/Footer.jsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,18 +6,23 @@ import {
   Clock, Facebook, Instagram, Youtube, X as XIcon,
 } from "lucide-react";
 import api from "@/app/lib/api";
+import Link from "next/link";
+import { useAuth } from "@/app/context/AuthContext";
 
 export default function Footer() {
+  const { user } = useAuth(); // Angalia kama user yupo kwenye session
   const [email, setEmail] = useState("");
   const [subState, setSubState] = useState("idle"); // idle | loading | done | error
   const [pendingCount, setPendingCount] = useState(0);
 
   // ── Fetch pending orders count ─────────────────────────────────────────
   useEffect(() => {
-    api.get("/api/orders/my?status=pending&limit=1")
-      .then(({ data }) => setPendingCount(data.pagination?.total || 0))
-      .catch(() => { });
-  }, []);
+    if (user) {
+      api.get("/api/orders/my?status=pending&limit=1")
+        .then(({ data }) => setPendingCount(data.pagination?.total || 0))
+        .catch(() => { });
+    }
+  }, [user]);
 
   // ── Subscribe handler ──────────────────────────────────────────────────
   const handleSubscribe = async () => {
@@ -33,14 +37,40 @@ export default function Footer() {
     }
   };
 
-  const shopLinks = ["All products", "New arrivals", "Best sellers", "Deals & offers", "Gift cards"];
-  const helpLinks = ["My orders", "Track delivery", "Returns", "FAQ", "Contact us"];
+  // Mfumo wa object ili kila link iende kwenye url yake sahihi
+  const shopLinks = [
+    { name: "All products", url: "/shop" },
+    { name: "New arrivals", url: "/shop?sort=newest" },
+    { name: "Best sellers", url: "/shop?sort=trending" },
+    { name: "Deals & offers", url: "/deals" },
+    { name: "Gift cards", url: "/gift-cards" }
+  ];
+
+  // Tunatengeneza list ya Help links kulingana na kama user ame-login
+  const helpLinks = [];
+  
+  if (user) {
+    helpLinks.push(
+      { name: "My orders", url: "/orders" },
+      { name: "Track delivery", url: "/track-delivery" }
+    );
+  } else {
+    // Ukipenda unaweza kuweka link ya login hapa user akiwa hajaingia
+    helpLinks.push({ name: "Login / Register", url: "/login" });
+  }
+
+  // Zilizobaki zinaonekana kwa wote
+  helpLinks.push(
+    { name: "Returns", url: "/returns" },
+    { name: "FAQ", url: "/faq" },
+    { name: "Contact", url: "/contact" }
+  );
 
   return (
     <footer className="w-full">
 
       {/* ── Pending Orders Banner ──────────────────────────────────────── */}
-      {pendingCount > 0 && (
+      {user && pendingCount > 0 && (
         <div className="flex items-center gap-3 px-6 py-5  bg-yellow-400/10 border-b border-yellow-400/30">
           <Clock size={14} className="text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
           <p className="text-yellow-800 dark:text-yellow-300 text-sm flex-1">
@@ -86,11 +116,11 @@ export default function Footer() {
               <p className="text-[17px] font-semibold uppercase tracking-widest text-body mb-4 ">Shop</p>
               <ul className="space-y-2.5">
                 {shopLinks.map(link => (
-                  <li key={link}>
-                    <a href="#"
+                  <li key={link.name}>
+                    <Link href={link.url}
                       className="text-heading text-sm opacity-75 hover:opacity-100 hover:text-[var(--color-primary)] transition-colors">
-                      {link}
-                    </a>
+                      {link.name}
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -101,11 +131,11 @@ export default function Footer() {
               <p className="text-[17px] font-semibold uppercase tracking-widest text-body mb-4">Help</p>
               <ul className="space-y-2.5">
                 {helpLinks.map(link => (
-                  <li key={link}>
-                    <a href="#"
+                  <li key={link.name}>
+                    <Link href={link.url}
                       className="text-heading text-sm opacity-75 hover:opacity-100 hover:text-[var(--color-primary)] transition-colors">
-                      {link}
-                    </a>
+                      {link.name}
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -175,11 +205,15 @@ export default function Footer() {
               {" "}All rights reserved.
             </p>
             <ul className="flex gap-5 list-none m-0 p-0">
-              {["Privacy policy", "Terms of use", "Sitemap"].map(l => (
-                <li key={l}>
-                  <a href="#" className="text-body text-[12.5px] hover:text-[var(--color-primary)] transition-colors">
-                    {l}
-                  </a>
+              {[
+                { name: "Privacy policy", url: "/privacy" },
+                { name: "Terms of use", url: "/terms" },
+                { name: "Sitemap", url: "/sitemap" }
+              ].map(l => (
+                <li key={l.name}>
+                  <Link href={l.url} className="text-body text-[12.5px] hover:text-[var(--color-primary)] transition-colors">
+                    {l.name}
+                  </Link>
                 </li>
               ))}
             </ul>

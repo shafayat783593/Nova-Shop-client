@@ -67,11 +67,11 @@ const RegisterPage = () => {
         }
     };
 
-    const roles = [
-        { id: 'user', label: 'Customer', icon: User },
-        { id: 'owner', label: 'Vendor', icon: Store },
-        { id: 'deliveryboy', label: 'Courier', icon: Truck },
-    ];
+    // const roles = [
+    //     { id: 'user', label: 'Customer', icon: User },
+    //     // { id: 'owner', label: 'Vendor', icon: Store },
+    //     // { id: 'deliveryboy', label: 'Courier', icon: Truck },
+    // ];
 
     return (
         <div className="min-h-screen w-full flex bg-bg transition-colors duration-300">
@@ -223,7 +223,7 @@ const RegisterPage = () => {
                         </div>
 
                         {/* Role Selection */}
-                        <div className="space-y-3 pt-2">
+                        {/* <div className="space-y-3 pt-2">
                             <label className="text-sm font-bold text-heading ml-1">Join as a</label>
                             <div className="grid grid-cols-3 gap-3">
                                 {roles.map((role) => (
@@ -252,7 +252,7 @@ const RegisterPage = () => {
                                     </label>
                                 ))}
                             </div>
-                        </div>
+                        </div> */}
 
                         {/* Submit Button */}
                         <div className="pt-4">
