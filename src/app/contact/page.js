@@ -21,7 +21,6 @@ export default function ContactPage() {
     setErrorMessage("");
 
     try {
-      // আপনার ব্যাকএন্ডের ফুল ইউআরএল (যেমন: http://localhost:5000/api/contact) অথবা রিলেটিভ পাথ
       await axios.post(`${NEXT_PUBLIC_BACKEND_URL}/api/contact`, formData);
       
       setIsSubmitted(true);
@@ -30,7 +29,6 @@ export default function ContactPage() {
       setTimeout(() => setIsSubmitted(false), 5000);
     } catch (error) {
       console.error("Failed to send message:", error);
-      // ব্যাকএন্ড থেকে আসা নির্দিষ্ট এরর মেসেজ দেখানোর চেষ্টা করবে
       const msg = error.response?.data?.message || "Something went wrong. Please try again later.";
       setErrorMessage(msg);
     } finally {
