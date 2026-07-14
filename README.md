@@ -1,113 +1,359 @@
 <div align="center">
 
+<img src="./public/banner.png" alt="NovaShop Banner" width="100%"/>
+
 # 🛍️ NovaShop
 
-### Multi-Role E-commerce Platform
+### Modern Multi-Role E-commerce Platform
 
-[![Live Demo](https://img.shields.io/badge/Live_Demo-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://novashop-bd.vercel.app/)
+<p>
+<a href="https://novashop-bd.vercel.app">
+<img src="https://img.shields.io/badge/🌐_Live_Demo-Visit_Website-000?style=for-the-badge" />
+</a>
 
-![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
-![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
-![Express](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
-![Socket.IO](https://img.shields.io/badge/Socket.IO-010101?style=for-the-badge&logo=socketdotio&logoColor=white)
-![Stripe](https://img.shields.io/badge/Stripe-008CDD?style=for-the-badge&logo=stripe&logoColor=white)
+<a href="https://github.com/shafayat783593">
+<img src="https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github" />
+</a>
+</p>
+
+<p>
+
+<img src="https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs"/>
+
+<img src="https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black"/>
+
+<img src="https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs"/>
+
+<img src="https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express"/>
+
+<img src="https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb"/>
+
+<img src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis"/>
+
+<img src="https://img.shields.io/badge/Socket.IO-010101?style=for-the-badge&logo=socketdotio"/>
+
+<img src="https://img.shields.io/badge/Stripe-635BFF?style=for-the-badge&logo=stripe"/>
+
+</p>
 
 </div>
 
 ---
 
-## 📖 Overview
+# 🌍 Live Demo
 
-NovaShop is a full-featured, multi-role e-commerce platform built from scratch with a **Next.js** frontend and a **Node.js / Express / MongoDB** backend. It supports customers, sellers/admins, and real-time interactions — designed and built as an end-to-end production system, not just a demo.
-
-**🔗 Live:** [novashop-bd.vercel.app](https://novashop-bd.vercel.app/)
+### 🔗 https://novashop-bd.vercel.app/
 
 ---
 
-## ✨ Key Features
+# 📖 Overview
 
-- 🔐 **Authentication** — Google OAuth (Passport.js) alongside standard auth, secured with JWT and CSRF tokens
-- 💳 **Payments** — Stripe (with webhook-driven order confirmation), SSLCommerz, and bKash gateway integrations
-- 💬 **Real-Time Chat** — Customer ↔ Admin live chat powered by Socket.IO
-- ⭐ **Review System** — Product reviews gated behind verified delivered-order status
-- 🏷️ **Promotions & Discounts** — Dynamic promotion engine reflected live across cart, checkout, and a navbar promo ticker
-- 🛒 **Cart & Checkout** — Full shopping cart flow with real-time price/discount calculation
-- 🧑‍💼 **Multi-Role Access** — Separate customer and admin experiences with role-based permissions
-- ⚡ **Caching** — Redis used for performance-sensitive data
-- 🌍 **Cross-Origin Auth** — Secure cookie handling across frontend/backend domains via same-origin proxying
+NovaShop is a modern full-stack multi-role e-commerce platform built with **Next.js**, **Node.js**, **Express.js**, and **MongoDB**.
+
+It provides customers with a seamless online shopping experience while giving administrators complete control over products, orders, promotions, and users through a powerful dashboard.
+
+The application also includes secure authentication, real-time chat, multiple payment gateways, Redis caching, and production-ready architecture.
 
 ---
 
-## 🛠️ Tech Stack
+# ✨ Key Features
 
-| Layer | Technologies |
-|---|---|
-| **Frontend** | Next.js, React, Tailwind CSS |
-| **Backend** | Node.js, Express.js |
-| **Database** | MongoDB (Mongoose), Redis |
-| **Real-time** | Socket.IO |
-| **Auth** | Passport.js (Google OAuth), JWT, CSRF protection |
-| **Payments** | Stripe, SSLCommerz, bKash |
-| **Email** | Resend (HTTP API) |
-| **Deployment** | Vercel (frontend), Render (backend) |
+## 🔐 Authentication
+
+- Email & Password Authentication
+- Google OAuth Login
+- JWT Authentication
+- Secure Cookies
+- CSRF Protection
 
 ---
 
-## 🏗️ Architecture Notes
+## 🛍 Shopping
 
-- **Cross-origin cookies**: Resolved via Vercel rewrites for same-origin proxying between frontend and backend
-- **Real-time chat**: Fixed a dual Socket.IO instance bug that caused messages to not appear without a manual reload
-- **Transactional email**: Migrated from SMTP (blocked on Render) to Resend's HTTP API for reliable delivery in production
-- **Stripe webhooks**: Handles order metadata and payment confirmation asynchronously
+- Browse Products
+- Product Search
+- Category Filter
+- Product Details
+- Wishlist
+- Shopping Cart
 
 ---
 
-## 🚀 Getting Started
+## 💳 Payments
+
+- Stripe Payment
+- SSLCommerz Payment
+- bKash Payment
+- Secure Checkout
+- Order Confirmation
+
+---
+
+## 💬 Real-time Communication
+
+- Customer ↔ Admin Chat
+- Socket.IO Integration
+- Instant Messaging
+
+---
+
+## ⭐ Reviews
+
+- Verified Purchase Reviews
+- Rating System
+
+---
+
+## 🏷 Promotions
+
+- Dynamic Discounts
+- Coupon Support
+- Promotional Banner
+
+---
+
+## ⚡ Performance
+
+- Redis Cache
+- Optimized Queries
+- Fast Loading
+
+---
+
+# 👥 User Roles
+
+## 🛒 Customer
+
+Customers can:
+
+- Register/Login
+- Browse Products
+- Search Products
+- Add to Cart
+- Wishlist
+- Place Orders
+- Make Payments
+- Track Orders
+- Write Reviews
+- Chat with Admin
+
+---
+
+## 👨‍💼 Admin
+
+Admins can:
+
+- Dashboard Analytics
+- Manage Products
+- Manage Categories
+- Manage Orders
+- Manage Customers
+- Manage Promotions
+- Reply Customer Chats
+- Manage Reviews
+
+---
+
+# 🛠 Tech Stack
+
+| Layer | Technology |
+|---------|------------|
+| Frontend | Next.js, React, Tailwind CSS |
+| Backend | Node.js, Express.js |
+| Database | MongoDB, Mongoose |
+| Cache | Redis |
+| Authentication | Passport.js, JWT, Google OAuth |
+| Payment | Stripe, SSLCommerz, bKash |
+| Real-time | Socket.IO |
+| Email | Resend |
+| Deployment | Vercel & Render |
+
+---
+
+# 📦 Main Dependencies
+
+### Frontend
+
+- Next.js
+- React
+- Tailwind CSS
+- Axios
+- React Query
+- React Hook Form
+- Zod
+- Framer Motion
+- React Hot Toast
+
+### Backend
+
+- Express.js
+- Mongoose
+- Redis
+- Passport.js
+- JWT
+- Socket.IO
+- Stripe
+- SSLCommerz
+- Resend
+- Cloudinary
+- Multer
+
+---
+
+# 📸 Screenshots
+
+## 🏠 Home Page
+
+<img src="./public/home.png"/>
+
+---
+
+## 💳 Checkout
+
+<img src="./public/checkout.png"/>
+
+---
+
+## 👨‍💼 Dashboard
+
+<img src="./public/dashboard.png"/>
+
+---
+
+# ⚙️ Installation
+
+Clone the repository
 
 ```bash
-# Clone the repository
 git clone https://github.com/shafayat783593/novashop.git
+```
+
+Go to project
+
+```bash
 cd novashop
+```
 
-# Install dependencies (frontend & backend)
+Install dependencies
+
+```bash
 npm install
+```
 
-# Set up environment variables
-cp .env.example .env
+Run development server
 
-# Run the development server
+```bash
 npm run dev
 ```
 
-### Environment Variables
+---
+
+# 🔑 Environment Variables
 
 ```env
 MONGODB_URI=
+
 REDIS_URL=
+
 JWT_SECRET=
+
 GOOGLE_CLIENT_ID=
+
 GOOGLE_CLIENT_SECRET=
+
 STRIPE_SECRET_KEY=
+
 STRIPE_WEBHOOK_SECRET=
+
 SSLCOMMERZ_STORE_ID=
+
 SSLCOMMERZ_STORE_PASSWORD=
+
 BKASH_APP_KEY=
+
 RESEND_API_KEY=
 ```
 
 ---
 
-## 📸 Screenshots
+# 📂 Project Structure
 
-> _Add screenshots or a demo GIF here to showcase the UI._
-![Homepage](https://novashop-bd.vercel.app/shop-image.png)
+```
+NovaShop
+
+client/
+│
+├── app
+├── components
+├── hooks
+├── services
+├── lib
+
+server/
+│
+├── controllers
+├── middleware
+├── routes
+├── models
+├── services
+├── utils
+
+public/
+│
+├── banner.png
+├── home.png
+├── checkout.png
+└── dashboard.png
+```
+
 ---
 
-## 🌐 Connect
+# 🤝 Contributing
 
-[![Portfolio](https://img.shields.io/badge/Portfolio-58A6FF?style=for-the-badge&logo=vercel&logoColor=white)](https://shafayat-hosan.vercel.app)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/md-shafayat-hosan)
+Contributions are welcome.
+
+1. Fork the repository
+
+2. Create a feature branch
+
+```bash
+git checkout -b feature/new-feature
+```
+
+3. Commit changes
+
+```bash
+git commit -m "Add new feature"
+```
+
+4. Push changes
+
+```bash
+git push origin feature/new-feature
+```
+
+5. Open a Pull Request
+
+---
+
+# 🌐 Links
+
+- **Live Website:** https://novashop-bd.vercel.app/
+- **Portfolio:** https://shafayat-hosan.vercel.app
+- **LinkedIn:** https://linkedin.com/in/md-shafayat-hosan
+
+---
+
+# 📄 License
+
+This project is licensed under the MIT License.
+
+---
+
+<div align="center">
+
+### ⭐ If you like this project, please give it a Star ⭐
+
+Made with ❤️ by **MD. Shafayat Hosan**
 
 </div>
