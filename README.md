@@ -102,7 +102,7 @@ RESEND_API_KEY=
 ## 📸 Screenshots
 
 > _Add screenshots or a demo GIF here to showcase the UI._
-
+![Homepage](https://novashop-bd.vercel.app/shop-image.png)
 ---
 
 ## 🌐 Connect
