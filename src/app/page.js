@@ -3,6 +3,7 @@ import HeroSection from './Home/Herosection'
 import FeaturedCategories from './Home/FeaturedCategories'
 import TrendingProducts from './Home/Trendingproducts'
 import { PromoBanner } from './Home/PromoBanner'
+import HomeReviewsSection from './Home/Homereviewssection'
 
 function page() {
   return (
@@ -10,7 +11,8 @@ function page() {
       <HeroSection/>
       <FeaturedCategories/>
       <PromoBanner/>
-      <TrendingProducts/>
+      <TrendingProducts />
+      <HomeReviewsSection/>
     
     </div>
   )

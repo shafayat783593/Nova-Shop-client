@@ -44,7 +44,7 @@ const RegisterPage = () => {
         watch,
         formState: { errors, isSubmitting },
     } = useForm({
-        defaultValues: { role: 'user' },
+        defaultValues: { role:'customer' },
     });
 
     const selectedRole = watch('role');
@@ -58,7 +58,7 @@ const RegisterPage = () => {
 
     const onSubmit = async (data) => {
         try {
-            console.log(data)
+            console.log("data", data)
             await api.post('/api/auth/register', data);
             toast.success('If you email is valid, you will receive a verification link has been sent. it will be expire in 5 minutes');
             reset();
