@@ -20,6 +20,19 @@ export const useChat = () => {
     setConversation(conv);
   };
 
+  // ✅ একটি জায়গা থেকেই message add করো (socket echo + optimistic send দুটোতেই ব্যবহার হবে)
+  // duplicate _id থাকলে আবার add হবে না
+  const addMessage = useCallback((msg) => {
+    if (!msg || !msg._id) return;
+    setMessages((prev) => {
+      const exists = prev.some(
+        (m) => m._id?.toString() === msg._id?.toString()
+      );
+      if (exists) return prev;
+      return [...prev, msg];
+    });
+  }, []);
+
   // Socket setup — একবারই connect
   useEffect(() => {
     if (!user) return;
@@ -28,20 +41,14 @@ export const useChat = () => {
     socketRef.current = socket;
 
     socket.on("newMessage", (msg) => {
-      setMessages((prev) => {
-        const exists = prev.some(
-          (m) => m._id?.toString() === msg._id?.toString()
-        );
-        if (exists) return prev;
-        return [...prev, msg];
-      });
+      addMessage(msg);
     });
 
     return () => {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [user]);
+  }, [user, addMessage]);
 
   // Messages load
   const loadMessages = useCallback(async (conversationId) => {
@@ -99,9 +106,19 @@ export const useChat = () => {
         }
       }
 
-      const { data } = await api.post("/api/chat/send", body) ;
+      const { data } = await api.post("/api/chat/send", body);
 
       if (data.success) {
+        // ✅ FIX: নিজের পাঠানো message সাথে সাথে local state এ যোগ করো।
+        // আগে এটা শুধু socket "newMessage" event এর উপর নির্ভর করত —
+        // কিন্তু socket room join হওয়ার আগেই server response/emit চলে আসলে
+        // (race condition) সেই event miss হয়ে যেত, তাই message reload
+        // না করা পর্যন্ত দেখা যেত না। এখন response থেকেই সরাসরি দেখাচ্ছি,
+        // socket echo পরে আসলেও addMessage duplicate ঠেকিয়ে দেবে।
+        if (data.data) {
+          addMessage(data.data);
+        }
+
         if (!currentConv && data.conversationId) {
           // ✅ প্রথম message — conversation set করো এবং room join করো
           const newConv = { _id: data.conversationId };
@@ -127,7 +144,7 @@ export const useChat = () => {
     } catch (err) {
       console.error("sendMessage error:", err);
     }
-  }, [user]);
+  }, [user, addMessage]);
 
   return {
     user,

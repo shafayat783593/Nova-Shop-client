@@ -1,7 +1,35 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, Headphones, User } from "lucide-react";
 import { useChat } from "../context/usechat";
+import Image from "next/image";
+
+// ── ছোট্ট reusable Avatar — messenger এর মতো প্রোফাইল ছবি দেখানোর জন্য ──
+// আসল avatar থাকলে ছবি দেখাবে, না থাকলে বা load fail করলে সুন্দর gradient icon fallback দেখাবে
+function ChatAvatar({ src, name, fallbackIcon: FallbackIcon = User, size = "w-7 h-7" }) {
+  const [imgError, setImgError] = useState(false);
+
+if (src && !imgError) {
+  return (
+    <Image
+      src={src}
+      alt={name || "User"}
+      width={48}
+      height={48}
+      onError={() => setImgError(true)}
+      className={`${size} rounded-full object-cover flex-shrink-0 border border-white/10 shadow-sm`}
+    />
+  );
+}
+
+  return (
+    <div
+      className={`${size} rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0 shadow-sm`}
+    >
+      <FallbackIcon className="w-1/2 h-1/2 text-white" />
+    </div>
+  );
+}
 
 export default function AdminChat() {
   const [inputText, setInputText] = useState("");
@@ -23,8 +51,9 @@ export default function AdminChat() {
 
   const handleSend = async () => {
     if (!inputText.trim()) return;
-    await sendMessage(inputText);
-    setInputText("");
+    const text = inputText;
+    setInputText(""); // ✅ আগে ইনপুট ক্লিয়ার করো — instant feel এর জন্য
+    await sendMessage(text);
   };
 
   // Enter চাপলে send হবে
@@ -35,15 +64,26 @@ export default function AdminChat() {
     }
   };
 
+  // Support agent এর তথ্য (conversation.adminId এখন populate করা, name+avatar সহ)
+  const agentName = conversation?.adminId?.name || "Support";
+  const agentAvatar = conversation?.adminId?.avatar || null;
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-700">
-        <p className="text-sm text-gray-400">
-          {conversation
-            ? "Connected with support"
-            : "Send a message to start chatting"}
-        </p>
+      <div className="px-4 py-3 border-b border-gray-700 flex items-center gap-2.5">
+        <ChatAvatar
+          src={agentAvatar}
+          name={agentName}
+          fallbackIcon={Headphones}
+          size="w-8 h-8"
+        />
+        <div className="min-w-0">
+          <p className="text-sm font-medium truncate">{agentName}</p>
+          <p className="text-xs text-gray-400 truncate">
+            {conversation ? "Connected with support" : "Send a message to start chatting"}
+          </p>
+        </div>
       </div>
 
       {/* Messages Area */}
@@ -71,11 +111,24 @@ export default function AdminChat() {
         {messages.map((msg) => {
           const isMe = msg.senderRole === user?.role;
 
+          // isMe হলে নিজের avatar দেখাও, না হলে support agent এর avatar
+          const avatarSrc = isMe ? user?.avatar : msg.sender?.avatar || agentAvatar;
+          const avatarName = isMe ? user?.name : msg.sender?.name || agentName;
+
           return (
             <div
               key={msg._id}
-              className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+              className={`flex items-end gap-2 ${isMe ? "justify-end" : "justify-start"}`}
             >
+              {/* Support/Admin এর message এর বাম পাশে avatar */}
+              {!isMe && (
+                <ChatAvatar
+                  src={avatarSrc}
+                  name={avatarName}
+                  fallbackIcon={Headphones}
+                />
+              )}
+
               <div
                 className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm ${
                   isMe
@@ -95,6 +148,11 @@ export default function AdminChat() {
                   })}
                 </p>
               </div>
+
+              {/* নিজের message এর ডান পাশে avatar */}
+              {isMe && (
+                <ChatAvatar src={avatarSrc} name={avatarName} fallbackIcon={User} />
+              )}
             </div>
           );
         })}
