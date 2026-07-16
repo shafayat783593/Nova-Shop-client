@@ -63,7 +63,7 @@ const RegisterPage = () => {
             toast.success('If you email is valid, you will receive a verification link has been sent. it will be expire in 5 minutes');
             reset();
         } catch (error) {
-            toast.error(error?.response?.data?.message || 'Registration failed');
+            toast.error(error?.response?.data?.message );
         }
     };
 

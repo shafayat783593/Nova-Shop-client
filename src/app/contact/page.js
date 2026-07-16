@@ -21,7 +21,7 @@ export default function ContactPage() {
     setErrorMessage("");
 
     try {
-      await axios.post(`${NEXT_PUBLIC_BACKEND_URL}/api/contact`, formData);
+      await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/contact`, formData);
       
       setIsSubmitted(true);
       setFormData({ name: "", email: "", subject: "", message: "" });

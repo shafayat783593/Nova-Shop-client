@@ -1,16 +1,39 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import api from "@/app/lib/api";
 import {
     Loader2, UserPlus, Search, MoreVertical, Phone,
     MapPin, Package, Star, ToggleLeft, ToggleRight,
-    Trash2, X, Check, Mail, Shield, Wifi,
+    Trash2, X, Check, Mail, Shield, Wifi, ArrowRightLeft,
+    UserCheck, ChevronLeft,
 } from "lucide-react";
 import Loading from "@/app/components/global/Loading";
 
-// ─── Invite Modal ─────────────────────────────────────────────────────────────
-function InviteModal({ onClose, onSuccess }) {
+// ─── Tab Switcher ───────────────────────────────────────────────────────────
+function TabSwitcher({ tab, setTab }) {
+    return (
+        <div className="flex gap-1 bg-bg border border-accent-10 rounded-xl p-1 mb-5">
+            <button
+                onClick={() => setTab("invite")}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-colors
+                    ${tab === "invite" ? "bg-[var(--color-primary)] text-white" : "text-body hover:bg-accent-10"}`}
+            >
+                <Mail size={13} /> Invite by Email
+            </button>
+            <button
+                onClick={() => setTab("promote")}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-colors
+                    ${tab === "promote" ? "bg-[var(--color-primary)] text-white" : "text-body hover:bg-accent-10"}`}
+            >
+                <ArrowRightLeft size={13} /> Promote Customer
+            </button>
+        </div>
+    );
+}
+
+// ─── Invite by Email form ───────────────────────────────────────────────────
+function InviteByEmailForm({ onClose, onSuccess }) {
     const [form, setForm] = useState({ name: "", email: "", phone: "", zones: "" });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -28,7 +51,7 @@ function InviteModal({ onClose, onSuccess }) {
                     ? form.zones.split(",").map(z => z.trim()).filter(Boolean)
                     : [],
             });
-            onSuccess?.();
+            onSuccess?.("Invitation sent! ✅");
             onClose();
         } catch (err) {
             setError(err.response?.data?.message || "Failed to send invite");
@@ -38,13 +61,255 @@ function InviteModal({ onClose, onSuccess }) {
     };
 
     return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <p className="text-body text-xs -mt-2 mb-1">They'll receive a setup link via email to create a new account.</p>
+
+            <div className="grid grid-cols-2 gap-3">
+                <div>
+                    <label className="text-heading text-xs font-semibold block mb-1.5">Full Name *</label>
+                    <input type="text" value={form.name}
+                        onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                        placeholder="Rahim Uddin"
+                        className="w-full px-3 py-2.5 bg-bg border border-accent-10 rounded-xl text-heading text-sm outline-none focus:border-[var(--color-primary)] transition-all"
+                    />
+                </div>
+                <div>
+                    <label className="text-heading text-xs font-semibold block mb-1.5">Phone</label>
+                    <input type="text" value={form.phone}
+                        onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
+                        placeholder="01XXXXXXXXX"
+                        className="w-full px-3 py-2.5 bg-bg border border-accent-10 rounded-xl text-heading text-sm outline-none focus:border-[var(--color-primary)] transition-all"
+                    />
+                </div>
+            </div>
+            <div>
+                <label className="text-heading text-xs font-semibold block mb-1.5">Email *</label>
+                <input type="email" value={form.email}
+                    onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                    placeholder="rahim@example.com"
+                    className="w-full px-3 py-2.5 bg-bg border border-accent-10 rounded-xl text-heading text-sm outline-none focus:border-[var(--color-primary)] transition-all"
+                />
+            </div>
+            <div>
+                <label className="text-heading text-xs font-semibold block mb-1.5">Zones (comma separated)</label>
+                <input type="text" value={form.zones}
+                    onChange={e => setForm(p => ({ ...p, zones: e.target.value }))}
+                    placeholder="Dhanmondi, Mirpur, Uttara"
+                    className="w-full px-3 py-2.5 bg-bg border border-accent-10 rounded-xl text-heading text-sm outline-none focus:border-[var(--color-primary)] transition-all"
+                />
+            </div>
+
+            {error && (
+                <p className="text-[var(--color-danger)] text-xs font-medium bg-red-500/10 px-3 py-2 rounded-lg">
+                    {error}
+                </p>
+            )}
+
+            <div className="flex gap-3 pt-1">
+                <button type="button" onClick={onClose}
+                    className="flex-1 py-2.5 border border-accent-10 rounded-xl text-body text-sm font-semibold hover:bg-accent-10 transition-colors">
+                    Cancel
+                </button>
+                <button type="submit" disabled={loading}
+                    className="flex-1 py-2.5 bg-[var(--color-primary)] hover:bg-[var(--color-secondary)] text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+                    {loading ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
+                    {loading ? "Sending..." : "Send Invite"}
+                </button>
+            </div>
+        </form>
+    );
+}
+
+// ─── Promote Existing Customer form ─────────────────────────────────────────
+function PromoteCustomerForm({ onClose, onSuccess }) {
+    const [query, setQuery] = useState("");
+    const [results, setResults] = useState([]);
+    const [searching, setSearching] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [phone, setPhone] = useState("");
+    const [zones, setZones] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const debounceRef = useRef(null);
+
+    useEffect(() => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+
+        if (query.trim().length < 2) {
+            setResults([]);
+            return;
+        }
+
+        debounceRef.current = setTimeout(async () => {
+            setSearching(true);
+            try {
+                const { data } = await api.get("/api/deliveryboys/admin/users/search", {
+                    params: { query: query.trim() },
+                });
+                setResults(data.data || []);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setSearching(false);
+            }
+        }, 350);
+
+        return () => clearTimeout(debounceRef.current);
+    }, [query]);
+
+    const handlePromote = async (e) => {
+        e.preventDefault();
+        setError("");
+        setLoading(true);
+        try {
+            await api.post("/api/deliveryboys/admin/delivery-boys/promote", {
+                userId: selectedUser._id,
+                phone,
+                zones: zones ? zones.split(",").map(z => z.trim()).filter(Boolean) : [],
+            });
+            onSuccess?.(`${selectedUser.name} promoted to delivery boy ✅`);
+            onClose();
+        } catch (err) {
+            setError(err.response?.data?.message || "Failed to promote user");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ── Step 2: selected user → set phone/zones ──
+    if (selectedUser) {
+        return (
+            <form onSubmit={handlePromote} className="space-y-4">
+                <button
+                    type="button"
+                    onClick={() => setSelectedUser(null)}
+                    className="flex items-center gap-1 text-body text-xs font-semibold hover:text-heading transition-colors -mt-1 mb-1"
+                >
+                    <ChevronLeft size={13} /> Back to search
+                </button>
+
+                <div className="flex items-center gap-3 bg-bg border border-accent-10 rounded-xl p-3">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] flex items-center justify-center text-white font-black text-sm uppercase">
+                        {selectedUser.name?.[0] || "?"}
+                    </div>
+                    <div className="min-w-0">
+                        <p className="text-heading font-bold text-sm truncate">{selectedUser.name}</p>
+                        <p className="text-body text-xs truncate">{selectedUser.email}</p>
+                    </div>
+                    <span className="ml-auto text-[10px] font-bold px-2 py-1 rounded-full bg-accent-10 text-body capitalize">
+                        {selectedUser.role}
+                    </span>
+                </div>
+
+                <div>
+                    <label className="text-heading text-xs font-semibold block mb-1.5">Phone</label>
+                    <input type="text" value={phone} onChange={e => setPhone(e.target.value)}
+                        placeholder="01XXXXXXXXX"
+                        className="w-full px-3 py-2.5 bg-bg border border-accent-10 rounded-xl text-heading text-sm outline-none focus:border-[var(--color-primary)] transition-all"
+                    />
+                </div>
+                <div>
+                    <label className="text-heading text-xs font-semibold block mb-1.5">Zones (comma separated)</label>
+                    <input type="text" value={zones} onChange={e => setZones(e.target.value)}
+                        placeholder="Dhanmondi, Mirpur, Uttara"
+                        className="w-full px-3 py-2.5 bg-bg border border-accent-10 rounded-xl text-heading text-sm outline-none focus:border-[var(--color-primary)] transition-all"
+                    />
+                </div>
+
+                {error && (
+                    <p className="text-[var(--color-danger)] text-xs font-medium bg-red-500/10 px-3 py-2 rounded-lg">
+                        {error}
+                    </p>
+                )}
+
+                <div className="flex gap-3 pt-1">
+                    <button type="button" onClick={onClose}
+                        className="flex-1 py-2.5 border border-accent-10 rounded-xl text-body text-sm font-semibold hover:bg-accent-10 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" disabled={loading}
+                        className="flex-1 py-2.5 bg-[var(--color-primary)] hover:bg-[var(--color-secondary)] text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+                        {loading ? <Loader2 size={14} className="animate-spin" /> : <UserCheck size={14} />}
+                        {loading ? "Promoting..." : "Promote to Delivery Boy"}
+                    </button>
+                </div>
+            </form>
+        );
+    }
+
+    // ── Step 1: search & pick a user ──
+    return (
+        <div className="space-y-3">
+            <p className="text-body text-xs -mt-2 mb-1">
+                Instantly turn an existing customer into a delivery partner — no new email/password needed.
+            </p>
+
+            <div className="relative">
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-body" />
+                <input
+                    autoFocus
+                    type="text"
+                    value={query}
+                    onChange={e => setQuery(e.target.value)}
+                    placeholder="Search by name or email..."
+                    className="w-full pl-10 pr-4 py-2.5 bg-bg border border-accent-10 rounded-xl text-heading text-sm outline-none focus:border-[var(--color-primary)] transition-all"
+                />
+                {searching && (
+                    <Loader2 size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-body animate-spin" />
+                )}
+            </div>
+
+            <div className="max-h-64 overflow-y-auto space-y-1.5">
+                {query.trim().length >= 2 && !searching && results.length === 0 && (
+                    <p className="text-body text-xs text-center py-6">No matching users found</p>
+                )}
+                {results.map((u) => (
+                    <button
+                        key={u._id}
+                        type="button"
+                        onClick={() => setSelectedUser(u)}
+                        className="w-full flex items-center gap-3 bg-bg border border-accent-10 rounded-xl p-2.5 hover:border-[var(--color-primary)] transition-colors text-left"
+                    >
+                        {u.avatar ? (
+                            <img src={u.avatar} alt={u.name} className="w-9 h-9 rounded-lg object-cover" />
+                        ) : (
+                            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] flex items-center justify-center text-white font-black text-xs uppercase">
+                                {u.name?.[0] || "?"}
+                            </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                            <p className="text-heading font-semibold text-sm truncate">{u.name}</p>
+                            <p className="text-body text-xs truncate">{u.email}</p>
+                        </div>
+                        <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-accent-10 text-body capitalize shrink-0">
+                            {u.role}
+                        </span>
+                    </button>
+                ))}
+            </div>
+
+            <div className="flex justify-end pt-1">
+                <button type="button" onClick={onClose}
+                    className="px-4 py-2 border border-accent-10 rounded-xl text-body text-sm font-semibold hover:bg-accent-10 transition-colors">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    );
+}
+
+// ─── Combined Partner Modal (tab switcher + both forms) ─────────────────────
+function PartnerModal({ onClose, onSuccess }) {
+    const [tab, setTab] = useState("invite");
+
+    return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
             style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
             <div className="bg-card border border-accent-10 rounded-2xl w-full max-w-md p-6 shadow-2xl">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-4">
                     <div>
-                        <h2 className="text-heading font-black text-lg">Invite Delivery Partner</h2>
-                        <p className="text-body text-xs mt-0.5">They'll receive a setup link via email</p>
+                        <h2 className="text-heading font-black text-lg">Add Delivery Partner</h2>
+                        <p className="text-body text-xs mt-0.5">Invite someone new, or promote an existing customer</p>
                     </div>
                     <button onClick={onClose}
                         className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent-10 transition-colors text-body">
@@ -52,60 +317,13 @@ function InviteModal({ onClose, onSuccess }) {
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="text-heading text-xs font-semibold block mb-1.5">Full Name *</label>
-                            <input type="text" value={form.name}
-                                onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                                placeholder="Rahim Uddin"
-                                className="w-full px-3 py-2.5 bg-bg border border-accent-10 rounded-xl text-heading text-sm outline-none focus:border-[var(--color-primary)] transition-all"
-                            />
-                        </div>
-                        <div>
-                            <label className="text-heading text-xs font-semibold block mb-1.5">Phone</label>
-                            <input type="text" value={form.phone}
-                                onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
-                                placeholder="01XXXXXXXXX"
-                                className="w-full px-3 py-2.5 bg-bg border border-accent-10 rounded-xl text-heading text-sm outline-none focus:border-[var(--color-primary)] transition-all"
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="text-heading text-xs font-semibold block mb-1.5">Email *</label>
-                        <input type="email" value={form.email}
-                            onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-                            placeholder="rahim@example.com"
-                            className="w-full px-3 py-2.5 bg-bg border border-accent-10 rounded-xl text-heading text-sm outline-none focus:border-[var(--color-primary)] transition-all"
-                        />
-                    </div>
-                    <div>
-                        <label className="text-heading text-xs font-semibold block mb-1.5">Zones (comma separated)</label>
-                        <input type="text" value={form.zones}
-                            onChange={e => setForm(p => ({ ...p, zones: e.target.value }))}
-                            placeholder="Dhanmondi, Mirpur, Uttara"
-                            className="w-full px-3 py-2.5 bg-bg border border-accent-10 rounded-xl text-heading text-sm outline-none focus:border-[var(--color-primary)] transition-all"
-                        />
-                    </div>
+                <TabSwitcher tab={tab} setTab={setTab} />
 
-                    {error && (
-                        <p className="text-[var(--color-danger)] text-xs font-medium bg-red-500/10 px-3 py-2 rounded-lg">
-                            {error}
-                        </p>
-                    )}
-
-                    <div className="flex gap-3 pt-1">
-                        <button type="button" onClick={onClose}
-                            className="flex-1 py-2.5 border border-accent-10 rounded-xl text-body text-sm font-semibold hover:bg-accent-10 transition-colors">
-                            Cancel
-                        </button>
-                        <button type="submit" disabled={loading}
-                            className="flex-1 py-2.5 bg-[var(--color-primary)] hover:bg-[var(--color-secondary)] text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
-                            {loading ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
-                            {loading ? "Sending..." : "Send Invite"}
-                        </button>
-                    </div>
-                </form>
+                {tab === "invite" ? (
+                    <InviteByEmailForm onClose={onClose} onSuccess={onSuccess} />
+                ) : (
+                    <PromoteCustomerForm onClose={onClose} onSuccess={onSuccess} />
+                )}
             </div>
         </div>
     );
@@ -145,7 +363,6 @@ function DeliveryBoyCard({ boy, onToggle, onDelete }) {
 
     return (
         <div className={`bg-card border rounded-2xl p-5 relative transition-all hover:shadow-lg ${boy.isActive ? "border-accent-10" : "border-red-500/20 opacity-70"}`}>
-            {/* Online / offline dot */}
             <div
                 title={boy.isOnline ? "Online" : "Offline"}
                 className={`absolute top-4 right-4 w-2.5 h-2.5 rounded-full
@@ -154,7 +371,6 @@ function DeliveryBoyCard({ boy, onToggle, onDelete }) {
                         : "bg-gray-400"}`}
             />
 
-            {/* Avatar + name */}
             <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] flex items-center justify-center text-white font-black text-lg uppercase select-none">
                     {boy.name?.[0] || "?"}
@@ -168,7 +384,6 @@ function DeliveryBoyCard({ boy, onToggle, onDelete }) {
                     </div>
                     <p className="text-body text-xs truncate">{boy.email}</p>
                 </div>
-                {/* Menu */}
                 <div className="relative">
                     <button onClick={() => setMenuOpen(v => !v)}
                         className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent-10 transition-colors text-body">
@@ -195,7 +410,6 @@ function DeliveryBoyCard({ boy, onToggle, onDelete }) {
                 </div>
             </div>
 
-            {/* Stats */}
             <div className="grid grid-cols-3 gap-2 mb-4">
                 {[
                     { icon: Package, color: "text-[var(--color-primary)]", value: boy.currentOrders || 0, label: "Active" },
@@ -210,7 +424,6 @@ function DeliveryBoyCard({ boy, onToggle, onDelete }) {
                 ))}
             </div>
 
-            {/* Info */}
             <div className="space-y-1.5">
                 {boy.phone && (
                     <div className="flex items-center gap-2 text-xs text-body">
@@ -226,7 +439,6 @@ function DeliveryBoyCard({ boy, onToggle, onDelete }) {
                 )}
             </div>
 
-            {/* Status badges */}
             <div className="mt-3 flex flex-wrap gap-2">
                 <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full
                     ${boy.isActive ? "bg-emerald-400/10 text-emerald-400" : "bg-red-400/10 text-red-400"}`}>
@@ -251,7 +463,7 @@ export default function AdminDeliveryBoysPage() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [filterActive, setFilterActive] = useState("");
-    const [showInvite, setShowInvite] = useState(false);
+    const [showModal, setShowModal] = useState(false);
     const [toast, setToast] = useState("");
 
     const fetchBoys = useCallback(async () => {
@@ -304,14 +516,14 @@ export default function AdminDeliveryBoysPage() {
                         <h1 className="text-heading font-black text-2xl mb-1">Delivery Team</h1>
                         <p className="text-body text-sm">Manage and monitor your delivery partners</p>
                     </div>
-                    <button onClick={() => setShowInvite(true)}
+                    <button onClick={() => setShowModal(true)}
                         className="flex items-center gap-2 px-5 py-2.5 bg-[var(--color-primary)] hover:bg-[var(--color-secondary)] text-white font-bold rounded-xl transition-colors text-sm shadow-lg shadow-[var(--color-primary)]/20">
                         <UserPlus size={16} />
-                        Invite Partner
+                        Add Partner
                     </button>
                 </div>
 
-                {/* Stats — now 4 tiles including Online */}
+                {/* Stats */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                     {[
                         { label: "Total Partners", value: boys.length, icon: Shield, color: "text-[var(--color-primary)]", bg: "bg-[var(--color-primary)]/10" },
@@ -360,10 +572,10 @@ export default function AdminDeliveryBoysPage() {
                             <Package size={28} className="text-body" />
                         </div>
                         <p className="text-heading font-bold text-lg mb-1">No delivery partners yet</p>
-                        <p className="text-body text-sm mb-6">Invite someone to get started</p>
-                        <button onClick={() => setShowInvite(true)}
+                        <p className="text-body text-sm mb-6">Invite someone or promote a customer to get started</p>
+                        <button onClick={() => setShowModal(true)}
                             className="px-5 py-2.5 bg-[var(--color-primary)] text-white font-bold rounded-xl text-sm hover:bg-[var(--color-secondary)] transition-colors">
-                            + Invite Partner
+                            + Add Partner
                         </button>
                     </div>
                 ) : (
@@ -380,10 +592,10 @@ export default function AdminDeliveryBoysPage() {
                 )}
             </div>
 
-            {showInvite && (
-                <InviteModal
-                    onClose={() => setShowInvite(false)}
-                    onSuccess={() => { fetchBoys(); showToast("Invitation sent! ✅"); }}
+            {showModal && (
+                <PartnerModal
+                    onClose={() => setShowModal(false)}
+                    onSuccess={(msg) => { fetchBoys(); showToast(msg); }}
                 />
             )}
 

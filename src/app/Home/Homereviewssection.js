@@ -64,6 +64,7 @@ export default function HomeReviewsSection() {
         (async () => {
             try {
                 const res = await api.get("/api/reviews/featured", { params: { limit: 10 } });
+                console.log(res.data ,"data.....")
                 setReviews(res.data.data || []);
             } catch (err) {
                 console.error("Failed to load featured reviews:", err);
